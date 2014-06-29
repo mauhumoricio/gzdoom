@@ -62,6 +62,7 @@ extern HWND Window;
 #include "v_palette.h"
 #include "cmdlib.h"
 #include "s_sound.h"
+#include "files.h"
 
 #if FMOD_VERSION > 0x42899 && FMOD_VERSION < 0x43600
 #error You are trying to compile with an unsupported version of FMOD.
@@ -79,6 +80,35 @@ extern HWND Window;
 
 #define SPECTRUM_SIZE				256
 
+// PUBLIC DATA DEFINITIONS -------------------------------------------------
+
+ReverbContainer *ForcedEnvironment;
+
+CVAR (Int, snd_driver, 0, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
+CVAR (Int, snd_buffercount, 0, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
+CVAR (Bool, snd_hrtf, false, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
+CVAR (Bool, snd_waterreverb, true, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
+CVAR (String, snd_resampler, "Linear", CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
+CVAR (String, snd_speakermode, "Auto", CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
+CVAR (String, snd_output_format, "PCM-16", CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
+CVAR (String, snd_midipatchset, "", CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
+CVAR (Bool, snd_profile, false, 0)
+
+// Underwater low-pass filter cutoff frequency. Set to 0 to disable the filter.
+CUSTOM_CVAR (Float, snd_waterlp, 250, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
+{
+	// Clamp to the DSP unit's limits.
+	if (*self < 10 && *self != 0)
+	{
+		self = 10;
+	}
+	else if (*self > 22000)
+	{
+		self = 22000;
+	}
+}
+
+#ifndef NO_FMOD
 #if FMOD_VERSION < 0x43400
 #define FMOD_OPENSTATE_PLAYING FMOD_OPENSTATE_STREAMING
 #endif
@@ -111,34 +141,6 @@ EXTERN_CVAR (Bool, snd_pitched)
 EXTERN_CVAR (Int, snd_channels)
 
 extern int sfx_empty;
-
-// PUBLIC DATA DEFINITIONS -------------------------------------------------
-
-ReverbContainer *ForcedEnvironment;
-
-CVAR (Int, snd_driver, 0, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (Int, snd_buffercount, 0, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (Bool, snd_hrtf, false, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (Bool, snd_waterreverb, true, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (String, snd_resampler, "Linear", CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (String, snd_speakermode, "Auto", CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (String, snd_output_format, "PCM-16", CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-CVAR (Bool, snd_profile, false, 0)
-CVAR (String, snd_midipatchset, "", CVAR_ARCHIVE|CVAR_GLOBALCONFIG);
-
-// Underwater low-pass filter cutoff frequency. Set to 0 to disable the filter.
-CUSTOM_CVAR (Float, snd_waterlp, 250, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
-{
-	// Clamp to the DSP unit's limits.
-	if (*self < 10 && *self != 0)
-	{
-		self = 10;
-	}
-	else if (*self > 22000)
-	{
-		self = 22000;
-	}
-}
 
 // PRIVATE DATA DEFINITIONS ------------------------------------------------
 
@@ -308,6 +310,13 @@ public:
 	{
 		SetStream(stream);
 	}
+
+    FMODStreamCapsule(FMOD::Sound *stream, FMODSoundRenderer *owner, std::auto_ptr<FileReader> reader)
+        : Owner(owner), Stream(NULL), Channel(NULL),
+          UserData(NULL), Callback(NULL), Reader(reader), Ended(false)
+    {
+        SetStream(stream);
+    }
 
 	FMODStreamCapsule(void *udata, SoundStreamCallback callback, FMODSoundRenderer *owner)
 		: Owner(owner), Stream(NULL), Channel(NULL),
@@ -593,6 +602,7 @@ private:
 	FMOD::Channel *Channel;
 	void *UserData;
 	SoundStreamCallback Callback;
+    std::auto_ptr<FileReader> Reader;
 	FString URL;
 	bool Ended;
 	bool JustStarted;
@@ -1599,83 +1609,171 @@ static void SetCustomLoopPts(FMOD::Sound *sound)
 
 //==========================================================================
 //
-// FMODSoundRenderer :: OpenStream
+// open_reader_callback
+// close_reader_callback
+// read_reader_callback
+// seek_reader_callback
 //
-// Creates a streaming sound from a file on disk.
+// FMOD_CREATESOUNDEXINFO callbacks to handle reading resource data from a
+// FileReader.
 //
 //==========================================================================
 
-SoundStream *FMODSoundRenderer::OpenStream(const char *filename_or_data, int flags, int offset, int length)
+static FMOD_RESULT F_CALLBACK open_reader_callback(const char *name, int unicode, unsigned int *filesize, void **handle, void **userdata)
 {
-	FMOD_MODE mode;
-	FMOD_CREATESOUNDEXINFO exinfo;
-	FMOD::Sound *stream;
-	FMOD_RESULT result;
-	bool url;
-	FString patches;
+    FileReader *reader = NULL;
+    if(sscanf(name, "_FileReader_%p", &reader) != 1)
+    {
+        Printf("Invalid name in callback: %s\n", name);
+        return FMOD_ERR_FILE_NOTFOUND;
+    }
 
-	InitCreateSoundExInfo(&exinfo);
-	mode = FMOD_SOFTWARE | FMOD_2D | FMOD_CREATESTREAM;
-	if (flags & SoundStream::Loop)
-	{
-		mode |= FMOD_LOOP_NORMAL;
-	}
-	if (offset == -1)
-	{
-		mode |= FMOD_OPENMEMORY;
-		offset = 0;
-	}
-	exinfo.length = length;
-	exinfo.fileoffset = offset;
-	if ((*snd_midipatchset)[0] != '\0')
-	{
+    *filesize = reader->GetLength();
+    *handle = reader;
+    *userdata = reader;
+    return FMOD_OK;
+}
+
+static FMOD_RESULT F_CALLBACK close_reader_callback(void *handle, void *userdata)
+{
+    return FMOD_OK;
+}
+
+static FMOD_RESULT F_CALLBACK read_reader_callback(void *handle, void *buffer, unsigned int sizebytes, unsigned int *bytesread, void *userdata)
+{
+    FileReader *reader = reinterpret_cast<FileReader*>(handle);
+    *bytesread = reader->Read(buffer, sizebytes);
+    if(*bytesread > 0) return FMOD_OK;
+    return FMOD_ERR_FILE_EOF;
+}
+
+static FMOD_RESULT F_CALLBACK seek_reader_callback(void *handle, unsigned int pos, void *userdata)
+{
+    FileReader *reader = reinterpret_cast<FileReader*>(handle);
+    if(reader->Seek(pos, SEEK_SET) == 0)
+        return FMOD_OK;
+    return FMOD_ERR_FILE_COULDNOTSEEK;
+}
+
+
+//==========================================================================
+//
+// FMODSoundRenderer :: OpenStream
+//
+// Creates a streaming sound from a FileReader.
+//
+//==========================================================================
+
+SoundStream *FMODSoundRenderer::OpenStream(std::auto_ptr<FileReader> reader, int flags)
+{
+    FMOD_MODE mode;
+    FMOD_CREATESOUNDEXINFO exinfo;
+    FMOD::Sound *stream;
+    FMOD_RESULT result;
+    FString patches;
+    FString name;
+
+    InitCreateSoundExInfo(&exinfo);
+    exinfo.useropen  = open_reader_callback;
+    exinfo.userclose = close_reader_callback;
+    exinfo.userread  = read_reader_callback;
+    exinfo.userseek  = seek_reader_callback;
+
+    mode = FMOD_SOFTWARE | FMOD_2D | FMOD_CREATESTREAM;
+    if(flags & SoundStream::Loop)
+        mode |= FMOD_LOOP_NORMAL;
+    if((*snd_midipatchset)[0] != '\0')
+    {
 #ifdef _WIN32
-		// If the path does not contain any path separators, automatically
-		// prepend $PROGDIR to the path.
-		if (strcspn(snd_midipatchset, ":/\\") == strlen(snd_midipatchset))
-		{
-			patches << "$PROGDIR/" << snd_midipatchset;
-			patches = NicePath(patches);
-		}
-		else
+        // If the path does not contain any path separators, automatically
+        // prepend $PROGDIR to the path.
+        if (strcspn(snd_midipatchset, ":/\\") == strlen(snd_midipatchset))
+        {
+            patches << "$PROGDIR/" << snd_midipatchset;
+            patches = NicePath(patches);
+        }
+        else
 #endif
-		{
-			patches = NicePath(snd_midipatchset);
-		}
-		exinfo.dlsname = patches;
-	}
+        {
+            patches = NicePath(snd_midipatchset);
+        }
+        exinfo.dlsname = patches;
+    }
 
-	url = (offset == 0 && length == 0 && strstr(filename_or_data, "://") > filename_or_data);
-	if (url)
-	{
-		// Use a larger buffer for URLs so that it's less likely to be effected
-		// by hiccups in the data rate from the remote server.
-		Sys->setStreamBufferSize(64*1024, FMOD_TIMEUNIT_RAWBYTES);
-	}
-	result = Sys->createSound(filename_or_data, mode, &exinfo, &stream);
-	if (url)
-	{
-		// Restore standard buffer size.
-		Sys->setStreamBufferSize(16*1024, FMOD_TIMEUNIT_RAWBYTES);
-	}
-	if (result == FMOD_ERR_FORMAT && exinfo.dlsname != NULL)
-	{
-		// FMOD_ERR_FORMAT could refer to either the main sound file or
-		// to the DLS instrument set. Try again without special DLS
-		// instruments to see if that lets it succeed.
-		exinfo.dlsname = NULL;
-		result = Sys->createSound(filename_or_data, mode, &exinfo, &stream);
-		if (result == FMOD_OK)
-		{
-			Printf("%s is an unsupported format.\n", *snd_midipatchset);
-		}
-	}
-	if (result == FMOD_OK)
-	{
-		SetCustomLoopPts(stream);
-		return new FMODStreamCapsule(stream, this, url ? filename_or_data : NULL);
-	}
-	return NULL;
+    name.Format("_FileReader_%p", reader.get());
+    result = Sys->createSound(name, mode, &exinfo, &stream);
+    if(result == FMOD_ERR_FORMAT && exinfo.dlsname != NULL)
+    {
+        // FMOD_ERR_FORMAT could refer to either the main sound file or
+        // to the DLS instrument set. Try again without special DLS
+        // instruments to see if that lets it succeed.
+        exinfo.dlsname = NULL;
+        result = Sys->createSound(name, mode, &exinfo, &stream);
+        if (result == FMOD_OK)
+        {
+            Printf("%s is an unsupported format.\n", *snd_midipatchset);
+        }
+    }
+    if(result != FMOD_OK)
+        return NULL;
+
+    SetCustomLoopPts(stream);
+    return new FMODStreamCapsule(stream, this, reader);
+}
+
+SoundStream *FMODSoundRenderer::OpenStream(const char *url, int flags)
+{
+    FMOD_MODE mode;
+    FMOD_CREATESOUNDEXINFO exinfo;
+    FMOD::Sound *stream;
+    FMOD_RESULT result;
+    FString patches;
+
+    InitCreateSoundExInfo(&exinfo);
+    mode = FMOD_SOFTWARE | FMOD_2D | FMOD_CREATESTREAM;
+    if(flags & SoundStream::Loop)
+        mode |= FMOD_LOOP_NORMAL;
+    if((*snd_midipatchset)[0] != '\0')
+    {
+#ifdef _WIN32
+        // If the path does not contain any path separators, automatically
+        // prepend $PROGDIR to the path.
+        if (strcspn(snd_midipatchset, ":/\\") == strlen(snd_midipatchset))
+        {
+            patches << "$PROGDIR/" << snd_midipatchset;
+            patches = NicePath(patches);
+        }
+        else
+#endif
+        {
+            patches = NicePath(snd_midipatchset);
+        }
+        exinfo.dlsname = patches;
+    }
+
+    // Use a larger buffer for URLs so that it's less likely to be effected
+    // by hiccups in the data rate from the remote server.
+    Sys->setStreamBufferSize(64*1024, FMOD_TIMEUNIT_RAWBYTES);
+
+    result = Sys->createSound(url, mode, &exinfo, &stream);
+    if(result == FMOD_ERR_FORMAT && exinfo.dlsname != NULL)
+    {
+        exinfo.dlsname = NULL;
+        result = Sys->createSound(url, mode, &exinfo, &stream);
+        if(result == FMOD_OK)
+        {
+            Printf("%s is an unsupported format.\n", *snd_midipatchset);
+        }
+    }
+
+    // Restore standard buffer size.
+    Sys->setStreamBufferSize(16*1024, FMOD_TIMEUNIT_RAWBYTES);
+
+    if(result != FMOD_OK)
+        return NULL;
+
+    SetCustomLoopPts(stream);
+    return new FMODStreamCapsule(stream, this, url);
 }
 
 //==========================================================================
@@ -3090,3 +3188,4 @@ FMOD_RESULT FMODSoundRenderer::SetSystemReverbProperties(const REVERB_PROPERTIES
 #endif
 }
 
+#endif // NO_FMOD
