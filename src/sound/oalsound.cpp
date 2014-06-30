@@ -702,6 +702,11 @@ OpenALSoundRenderer::OpenALSoundRenderer()
     alcGetIntegerv(Device, ALC_MONO_SOURCES, 1, &numMono);
     alcGetIntegerv(Device, ALC_STEREO_SOURCES, 1, &numStereo);
 
+	if (0 == numMono && 0 == numStereo)
+	{
+		numStereo = snd_channels;
+	}
+
     Sources.Resize(std::min<int>(std::max<int>(*snd_channels, 2), numMono+numStereo));
     for(size_t i = 0;i < Sources.Size();i++)
     {

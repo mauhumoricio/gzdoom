@@ -11,8 +11,13 @@
 
 #ifndef NO_OPENAL
 
+#ifdef __APPLE__
+#include <OpenAL/al.h>
+#include <OpenAL/alc.h>
+#else // !__APPLE__
 #include "al.h"
 #include "alc.h"
+#endif // __APPLE__
 
 #ifndef ALC_ENUMERATE_ALL_EXT
 #define ALC_ENUMERATE_ALL_EXT 1
