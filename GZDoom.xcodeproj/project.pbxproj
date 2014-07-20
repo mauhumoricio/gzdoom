@@ -153,9 +153,9 @@
 		8A7C310E18F184410001B5A2 /* ulp.c in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27CB3139121FA0095D9A0 /* ulp.c */; };
 		8A7C310F18F184430001B5A2 /* sum.c in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27CB2139121FA0095D9A0 /* sum.c */; };
 		8A7C81C613BF3C0B000B654E /* SDLMain.m in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27F3E139126C00095D9A0 /* SDLMain.m */; };
-		8A7D867E1537055C002D03BD /* hq4x.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27E13139126C00095D9A0 /* hq4x.cpp */; settings = {COMPILER_FLAGS = "-O3"; }; };
-		8A7D867F1537055D002D03BD /* hq3x.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27E12139126C00095D9A0 /* hq3x.cpp */; settings = {COMPILER_FLAGS = "-O3"; }; };
-		8A7D86801537055D002D03BD /* hq2x.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27E11139126C00095D9A0 /* hq2x.cpp */; settings = {COMPILER_FLAGS = "-O3"; }; };
+		8A7D867E1537055C002D03BD /* hq4x.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27E13139126C00095D9A0 /* hq4x.cpp */; };
+		8A7D867F1537055D002D03BD /* hq3x.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27E12139126C00095D9A0 /* hq3x.cpp */; };
+		8A7D86801537055D002D03BD /* hq2x.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27E11139126C00095D9A0 /* hq2x.cpp */; };
 		8A7D86E715370D98002D03BD /* hq2x.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27E11139126C00095D9A0 /* hq2x.cpp */; settings = {COMPILER_FLAGS = "-O3"; }; };
 		8A7D86E815370D98002D03BD /* hq3x.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27E12139126C00095D9A0 /* hq3x.cpp */; settings = {COMPILER_FLAGS = "-O3"; }; };
 		8A7D86E915370D98002D03BD /* hq4x.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27E13139126C00095D9A0 /* hq4x.cpp */; settings = {COMPILER_FLAGS = "-O3"; }; };
@@ -537,7 +537,7 @@
 		8AA9A1981660E8DC007F75A4 /* OPL3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AA9A1951660E80A007F75A4 /* OPL3.cpp */; };
 		8AA9A1991660E8E5007F75A4 /* opl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AA9A1921660E80A007F75A4 /* opl.cpp */; };
 		8AB53BBB18941AD10079E426 /* xbrz.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AB53BB918941A880079E426 /* xbrz.cpp */; settings = {COMPILER_FLAGS = "-O3"; }; };
-		8AB53BBC18941AD90079E426 /* xbrz.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AB53BB918941A880079E426 /* xbrz.cpp */; settings = {COMPILER_FLAGS = "-O3"; }; };
+		8AB53BBC18941AD90079E426 /* xbrz.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AB53BB918941A880079E426 /* xbrz.cpp */; };
 		8AC81C411391321300F49DC3 /* libjpeg_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8AF278CA1390F0370095D9A0 /* libjpeg_gzdoom.a */; };
 		8AC81C421391321300F49DC3 /* liblzma_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8AF2795A1390F1200095D9A0 /* liblzma_gzdoom.a */; };
 		8AC81C431391321300F49DC3 /* libgme_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8AF27A541390F4F40095D9A0 /* libgme_gzdoom.a */; };
@@ -8470,13 +8470,14 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				CLANG_X86_VECTOR_INSTRUCTIONS = sse3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = YES;
 				GCC_ENABLE_CPP_RTTI = NO;
 				GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
 				GCC_MODEL_TUNING = "";
-				GCC_OPTIMIZATION_LEVEL = 3;
+				GCC_OPTIMIZATION_LEVEL = fast;
 				GCC_PREPROCESSOR_DEFINITIONS = NDEBUG;
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -8536,6 +8537,8 @@
 		8AC7ABCE197139660090CA76 /* MaxOptim */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_OPTIMIZATION_LEVEL = s;
+				LLVM_LTO = NO;
 				PRODUCT_NAME = lemon;
 			};
 			name = MaxOptim;
@@ -8543,10 +8546,12 @@
 		8AC7ABCF197139660090CA76 /* MaxOptim */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_OPTIMIZATION_LEVEL = s;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
 					HAVE_CONFIG_H,
 				);
+				LLVM_LTO = NO;
 				PRODUCT_NAME = re2c;
 			};
 			name = MaxOptim;
@@ -8554,6 +8559,8 @@
 		8AC7ABD0197139660090CA76 /* MaxOptim */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_OPTIMIZATION_LEVEL = s;
+				LLVM_LTO = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = MaxOptim;
@@ -8561,7 +8568,9 @@
 		8AC7ABD1197139660090CA76 /* MaxOptim */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_OPTIMIZATION_LEVEL = s;
 				HEADER_SEARCH_PATHS = lzma/C;
+				LLVM_LTO = NO;
 				PRODUCT_NAME = zipdir;
 			};
 			name = MaxOptim;
@@ -8845,6 +8854,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				CLANG_X86_VECTOR_INSTRUCTIONS = sse3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_CPP_RTTI = NO;
@@ -8868,6 +8878,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				CLANG_X86_VECTOR_INSTRUCTIONS = sse3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_CPP_RTTI = NO;
@@ -8877,6 +8888,7 @@
 				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
+				ONLY_ACTIVE_ARCH = YES;
 				USE_HEADERMAP = NO;
 			};
 			name = Release;
