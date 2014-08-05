@@ -404,7 +404,6 @@
 		8A9F53F214BB0F2900F3369B /* r_drawt.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27EFE139126C00095D9A0 /* r_drawt.cpp */; };
 		8A9F53F314BB0F2900F3369B /* r_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27F03139126C00095D9A0 /* r_main.cpp */; };
 		8A9F53F414BB0F2900F3369B /* r_plane.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27F05139126C00095D9A0 /* r_plane.cpp */; };
-		8A9F53F514BB0F2900F3369B /* r_polymost.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27F07139126C00095D9A0 /* r_polymost.cpp */; };
 		8A9F53F614BB0F2900F3369B /* r_segs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27F09139126C00095D9A0 /* r_segs.cpp */; };
 		8A9F53F714BB0F2900F3369B /* r_sky.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27F0B139126C00095D9A0 /* r_sky.cpp */; };
 		8A9F53F814BB0F2900F3369B /* r_things.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27F0E139126C00095D9A0 /* r_things.cpp */; };
@@ -934,7 +933,6 @@
 		8AF28153139126C10095D9A0 /* r_drawt.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27EFE139126C00095D9A0 /* r_drawt.cpp */; };
 		8AF28155139126C10095D9A0 /* r_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27F03139126C00095D9A0 /* r_main.cpp */; };
 		8AF28156139126C10095D9A0 /* r_plane.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27F05139126C00095D9A0 /* r_plane.cpp */; };
-		8AF28157139126C10095D9A0 /* r_polymost.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27F07139126C00095D9A0 /* r_polymost.cpp */; };
 		8AF28158139126C10095D9A0 /* r_segs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27F09139126C00095D9A0 /* r_segs.cpp */; };
 		8AF28159139126C10095D9A0 /* r_sky.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27F0B139126C00095D9A0 /* r_sky.cpp */; };
 		8AF2815A139126C10095D9A0 /* r_things.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27F0E139126C00095D9A0 /* r_things.cpp */; };
@@ -3320,8 +3318,6 @@
 		8AF27F04139126C00095D9A0 /* r_main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = r_main.h; sourceTree = "<group>"; };
 		8AF27F05139126C00095D9A0 /* r_plane.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = r_plane.cpp; sourceTree = "<group>"; };
 		8AF27F06139126C00095D9A0 /* r_plane.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = r_plane.h; sourceTree = "<group>"; };
-		8AF27F07139126C00095D9A0 /* r_polymost.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = r_polymost.cpp; sourceTree = "<group>"; };
-		8AF27F08139126C00095D9A0 /* r_polymost.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = r_polymost.h; sourceTree = "<group>"; };
 		8AF27F09139126C00095D9A0 /* r_segs.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = r_segs.cpp; sourceTree = "<group>"; };
 		8AF27F0A139126C00095D9A0 /* r_segs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = r_segs.h; sourceTree = "<group>"; };
 		8AF27F0B139126C00095D9A0 /* r_sky.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = r_sky.cpp; sourceTree = "<group>"; };
@@ -5896,8 +5892,6 @@
 				8AF27F04139126C00095D9A0 /* r_main.h */,
 				8AF27F05139126C00095D9A0 /* r_plane.cpp */,
 				8AF27F06139126C00095D9A0 /* r_plane.h */,
-				8AF27F07139126C00095D9A0 /* r_polymost.cpp */,
-				8AF27F08139126C00095D9A0 /* r_polymost.h */,
 				8A8D68B213C84344001D368F /* r_renderer.h */,
 				8AF27F09139126C00095D9A0 /* r_segs.cpp */,
 				8AF27F0A139126C00095D9A0 /* r_segs.h */,
@@ -7492,7 +7486,6 @@
 				8A9F53F214BB0F2900F3369B /* r_drawt.cpp in Sources */,
 				8A9F53F314BB0F2900F3369B /* r_main.cpp in Sources */,
 				8A9F53F414BB0F2900F3369B /* r_plane.cpp in Sources */,
-				8A9F53F514BB0F2900F3369B /* r_polymost.cpp in Sources */,
 				8A9F53F614BB0F2900F3369B /* r_segs.cpp in Sources */,
 				8A9F53F714BB0F2900F3369B /* r_sky.cpp in Sources */,
 				8A9F546C14BB0F2900F3369B /* r_swrenderer.cpp in Sources */,
@@ -8114,7 +8107,6 @@
 				8AF28153139126C10095D9A0 /* r_drawt.cpp in Sources */,
 				8AF28155139126C10095D9A0 /* r_main.cpp in Sources */,
 				8AF28156139126C10095D9A0 /* r_plane.cpp in Sources */,
-				8AF28157139126C10095D9A0 /* r_polymost.cpp in Sources */,
 				8AF28158139126C10095D9A0 /* r_segs.cpp in Sources */,
 				8AF28159139126C10095D9A0 /* r_sky.cpp in Sources */,
 				8A8D68B713C84344001D368F /* r_swrenderer.cpp in Sources */,
