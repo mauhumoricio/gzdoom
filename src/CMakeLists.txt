@@ -632,6 +632,7 @@ set( PLAT_COCOA_SOURCES
 	cocoa/IOHIDDevice_.c
 	cocoa/IOHIDElement_.c
 	cocoa/ImmrHIDUtilAddOn.c
+	cocoa/gl_wrapper.cpp
 	cocoa/i_backend_cocoa.mm
 	cocoa/i_joystick.cpp
 	cocoa/i_timer.cpp
