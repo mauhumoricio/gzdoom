@@ -45,7 +45,7 @@
 #include "gl/utility/gl_clock.h"
 
 
-namespace GLAuxilium
+namespace
 {
 
 class NonCopyable
@@ -945,7 +945,7 @@ void BackBuffer::SetGammaTable(const uint16_t* red, const uint16_t* green, const
 	m_gammaTexture.SetImageData(TEXTURE_FORMAT_COLOR_RGBA, 256, 1, m_gammaTable);
 }
 
-} // namespace GLAuxilium
+} // unnamed namespace
 
 
 // ---------------------------------------------------------------------------
@@ -956,7 +956,7 @@ extern "C"
 
 int SDL_GetGammaRamp(uint16_t* red, uint16_t* green, uint16_t* blue)
 {
-	GLAuxilium::BackBuffer* frameBuffer = GLAuxilium::BackBuffer::GetInstance();
+	BackBuffer* frameBuffer = BackBuffer::GetInstance();
 
 	if (NULL != frameBuffer)
 	{
@@ -968,7 +968,7 @@ int SDL_GetGammaRamp(uint16_t* red, uint16_t* green, uint16_t* blue)
 
 int SDL_SetGammaRamp(const uint16_t* red, const uint16_t* green, const uint16_t* blue)
 {
-	GLAuxilium::BackBuffer* frameBuffer = GLAuxilium::BackBuffer::GetInstance();
+	BackBuffer* frameBuffer = BackBuffer::GetInstance();
 
 	if (NULL != frameBuffer)
 	{
@@ -984,7 +984,7 @@ int SDL_SetGammaRamp(const uint16_t* red, const uint16_t* green, const uint16_t*
 // ---------------------------------------------------------------------------
 
 
-#define OpenGLFrameBuffer GLAuxilium::BackBuffer
+#define OpenGLFrameBuffer BackBuffer
 
 #include "sdlglvideo.cpp"
 
