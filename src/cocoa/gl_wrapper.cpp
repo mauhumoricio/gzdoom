@@ -418,11 +418,6 @@ private:
 	
 	PostProcess         m_postProcess;
 	
-	uint32_t            m_frame;
-	uint32_t            m_framesToSwitchVSync;
-	uint32_t            m_lastFrame;
-	uint32_t            m_lastFrameTime;
-	
 	void DrawRenderTarget();
 	
 }; // class BackBuffer
@@ -787,10 +782,6 @@ BackBuffer::BackBuffer(void* hMonitor, int width, int height, int bits, int refr
 : OpenGLFrameBuffer(hMonitor, width, height, bits, refreshHz, fullscreen)
 , m_renderTarget(width, height)
 , m_postProcess(&m_renderTarget)
-, m_frame(0)
-, m_framesToSwitchVSync(0)
-, m_lastFrame(0)
-, m_lastFrameTime(0)
 {
 	s_instance = this;
 
