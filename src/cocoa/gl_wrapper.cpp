@@ -41,6 +41,7 @@
 #include "gl/renderer/gl_renderer.h"
 #include "gl/system/gl_framebuffer.h"
 #include "gl/system/gl_interface.h"
+#include "gl/shaders/gl_shader.h"
 #include "gl/utility/gl_clock.h"
 
 
@@ -344,28 +345,6 @@ private:
 // ---------------------------------------------------------------------------
 
 
-class ShaderProgram : public Resource<ShaderProgram, UnbindToDefault>
-{
-public:
-	ShaderProgram(const char* const vertexName, const char* const fragmentName);
-	~ShaderProgram();
-
-	static void DoBind(const GLuint resourceID);
-	static GLenum GetBoundName();
-
-	void SetUniform(const char* const name, const GLint value);
-	void SetUniform(const char* const name, const GLfloat value0, const GLfloat value1);
-
-private:
-	GLuint m_vertexShaderID;
-	GLuint m_fragmentShaderID;
-
-}; // class ShaderProgram
-
-
-// ---------------------------------------------------------------------------
-
-
 class PostProcess
 {
 public:
@@ -385,7 +364,7 @@ private:
 	GLsizei m_height;
 
 	RenderTarget*  m_renderTarget;
-	ShaderProgram* m_shader;
+	FShader*       m_shader;
 
 	const RenderTarget* m_sharedDepth;
 
@@ -430,7 +409,7 @@ private:
 	static BackBuffer*  s_instance;
 
 	RenderTarget        m_renderTarget;
-	ShaderProgram       m_gammaProgram;
+	FShader             m_gammaProgram;
 
 	Texture1D           m_gammaTexture;
 
@@ -684,143 +663,6 @@ GLuint RenderTarget::GetBoundName()
 // ---------------------------------------------------------------------------
 
 
-static GLuint CreateShader(const GLenum type, const char* name)
-{
-	FString shaderString;
-
-	const int shaderLumpID = Wads.CheckNumForFullName(name);
-
-	if (-1 == shaderLumpID)
-	{
-		FileReader reader;
-
-		if (!reader.Open(name))
-		{
-			Printf("Unable to load shader \"%s\"\n", name);
-
-			return 0;
-		}
-
-		const long length = reader.GetLength();
-
-		char* const buffer = shaderString.LockNewBuffer(length);
-		buffer[length] = '\0';
-
-		reader.Read(buffer, length);
-
-		shaderString.UnlockBuffer();
-	}
-	else
-	{
-		FMemLump shaderLump = Wads.ReadLump(shaderLumpID);
-
-		shaderString = shaderLump.GetString();
-	}
-
-	const char* shader = shaderString.GetChars();
-
-	const GLuint result = glCreateShader(type);
-	GLint shaderSize = strlen(shaderString);
-
-	static char errorBuffer[8 * 1024] = {};
-
-	glShaderSource(result, 1, &shader, &shaderSize);
-	glCompileShader(result);
-	glGetShaderInfoLog(result, sizeof(errorBuffer), NULL, errorBuffer);
-
-	if ('\0' != *errorBuffer)
-	{
-		Printf("Shader \"%s\" compilation failed:\n%s\n", name, errorBuffer);
-	}
-
-	return result;
-}
-
-
-ShaderProgram::ShaderProgram(const char* const vertexName, const char* const fragmentName)
-: m_vertexShaderID(0)
-, m_fragmentShaderID(0)
-{
-	const bool hasVertexShader = NULL != vertexName && strlen(vertexName) > 0;
-	if (hasVertexShader)
-	{
-		m_vertexShaderID = CreateShader(GL_VERTEX_SHADER, vertexName);
-	}
-
-	const bool hasFragmentShader = NULL != fragmentName && strlen(fragmentName) > 0;
-	if (hasFragmentShader)
-	{
-		m_fragmentShaderID = CreateShader(GL_FRAGMENT_SHADER, fragmentName);
-	}
-
-	if (0 == m_vertexShaderID && 0 == m_fragmentShaderID)
-	{
-		return;
-	}
-
-	m_ID = glCreateProgram();
-
-	glAttachShader(m_ID, m_vertexShaderID);
-	glAttachShader(m_ID, m_fragmentShaderID);
-	glLinkProgram (m_ID);
-
-	static char errorBuffer[8 * 1024];
-	memset(errorBuffer, 0, sizeof (errorBuffer));
-
-	glGetProgramInfoLog(m_ID, sizeof(errorBuffer), NULL, errorBuffer);
-
-	if ('\0' != *errorBuffer)
-	{
-		Printf("Program link failed:\n%s\n", errorBuffer);
-		Printf("Vertex shader: %s\n",   hasVertexShader   ? vertexName   : "<none>");
-		Printf("Fragment shader: %s\n", hasFragmentShader ? fragmentName : "<none>");
-	}
-}
-
-ShaderProgram::~ShaderProgram()
-{
-	glDeleteShader(m_fragmentShaderID);
-	glDeleteShader(m_vertexShaderID);
-
-	glDeleteProgram(m_ID);
-}
-
-
-void ShaderProgram::DoBind(const GLuint resourceID)
-{
-	glUseProgram(resourceID);
-}
-
-GLenum ShaderProgram::GetBoundName()
-{
-	return GL_CURRENT_PROGRAM;
-}
-
-
-void ShaderProgram::SetUniform(const char* const name, const GLint value)
-{
-	Bind();
-
-	const GLint location = glGetUniformLocation(m_ID, name);
-	glUniform1i(location, value);
-
-	Unbind();
-}
-
-void ShaderProgram::SetUniform(const char* const name, const GLfloat value0, const GLfloat value1)
-{
-	Bind();
-
-	const GLint location = glGetUniformLocation(m_ID, name);
-	glUniform2f(location, value0, value1);
-
-	Unbind();
-}
-
-
-// ---------------------------------------------------------------------------
-
-
 PostProcess::PostProcess(const RenderTarget* const sharedDepth)
 : m_width       (0   )
 , m_height      (0   )
@@ -850,11 +692,16 @@ void PostProcess::Init(const char* const shaderName, const GLsizei width, const 
 
 	m_renderTarget = new RenderTarget(m_width, m_height, m_sharedDepth);
 
-	m_shader = new ShaderProgram(NULL, shaderName);
-	m_shader->SetUniform("sampler0", 0);
-	m_shader->SetUniform("resolution",
-		static_cast<GLfloat>(width),
-		static_cast<GLfloat>(height));
+	m_shader = new FShader();
+	m_shader->Load("PostProcessing", "shaders/glsl/main.vp", shaderName, NULL, "");
+
+	const GLuint program = m_shader->GetHandle();
+
+	glUseProgram(program);
+	glUniform1i(glGetUniformLocation(program, "sampler0"), 0);
+	glUniform2f(glGetUniformLocation(program, "resolution"),
+		static_cast<GLfloat>(width), static_cast<GLfloat>(height));
+	glUseProgram(0);
 }
 
 void PostProcess::Release()
@@ -899,9 +746,9 @@ void PostProcess::Finish()
 	glActiveTexture(GL_TEXTURE0);
 	colorTexture.Bind();
 
-	m_shader->Bind();
+	m_shader->Bind(0.0f);
 	colorTexture.Draw2D(m_width, m_height);
-	m_shader->Unbind();
+	glUseProgram(0);
 }
 
 
@@ -939,7 +786,6 @@ static const uint32_t GAMMA_TABLE_ALPHA = 0xFF000000;
 BackBuffer::BackBuffer(void* hMonitor, int width, int height, int bits, int refreshHz, bool fullscreen)
 : OpenGLFrameBuffer(hMonitor, width, height, bits, refreshHz, fullscreen)
 , m_renderTarget(width, height)
-, m_gammaProgram(NULL, "shaders/glsl/gamma_correction.fp")
 , m_postProcess(&m_renderTarget)
 , m_frame(0)
 , m_framesToSwitchVSync(0)
@@ -966,8 +812,15 @@ BackBuffer::BackBuffer(void* hMonitor, int width, int height, int bits, int refr
 
 	// Setup uniform samplers for gamma correction shader
 
-	m_gammaProgram.SetUniform("backbuffer", 0);
-	m_gammaProgram.SetUniform("gammaTable", 1);
+	m_gammaProgram.Load("GammaCorrection", "shaders/glsl/main.vp",
+		"shaders/glsl/gamma_correction.fp", NULL, "");
+
+	const GLuint program = m_gammaProgram.GetHandle();
+
+	glUseProgram(program);
+	glUniform1i(glGetUniformLocation(program, "backbuffer"), 0);
+	glUniform1i(glGetUniformLocation(program, "gammaTable"), 1);
+	glUseProgram(0);
 
 	// Fill render target with black color
 
@@ -1061,9 +914,9 @@ void BackBuffer::DrawRenderTarget()
 
 	glViewport(rbOpts.shiftX, rbOpts.shiftY, rbOpts.width, rbOpts.height);
 
-	m_gammaProgram.Bind();
+	m_gammaProgram.Bind(0.0f);
 	colorTexture.Draw2D(Width, Height);
-	m_gammaProgram.Unbind();
+	glUseProgram(0);
 
 	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 }
