@@ -613,13 +613,13 @@ set( PLAT_SDL_SYSTEM_SOURCES
 	sdl/i_movie.cpp
 	sdl/i_system.cpp
 	sdl/sdlvideo.cpp
-	sdl/sdlglvideo.cpp
 	sdl/st_start.cpp )
 set( PLAT_SDL_SPECIAL_SOURCES
 	sdl/i_gui.cpp
 	sdl/i_input.cpp
 	sdl/i_joystick.cpp
-	sdl/i_timer.cpp )
+	sdl/i_timer.cpp
+	sdl/sdlglvideo.cpp )
 set( PLAT_MAC_SOURCES
 	sdl/iwadpicker_cocoa.mm
 	sdl/i_system_cocoa.mm )
