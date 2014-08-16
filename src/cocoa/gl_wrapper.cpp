@@ -893,16 +893,6 @@ void BackBuffer::DrawRenderTarget()
 
 	GLint viewport[4] = {0};
 	glGetIntegerv(GL_VIEWPORT, viewport);
-
-	if (rbOpts.shiftX > 0.0f || rbOpts.shiftY > 0.0f)
-	{
-		// Clear whole screen if aspect ratio is different from native resolution
-		// to avoid drawing garbage instead of black bars
-
-		glViewport(0, 0, rbOpts.width + rbOpts.shiftX * 2, rbOpts.height + rbOpts.shiftY * 2);
-		glClear(GL_COLOR_BUFFER_BIT);
-	}
-
 	glViewport(rbOpts.shiftX, rbOpts.shiftY, rbOpts.width, rbOpts.height);
 
 	m_gammaProgram.Bind(0.0f);
