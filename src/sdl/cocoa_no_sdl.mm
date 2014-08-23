@@ -52,7 +52,6 @@
 
 #include <SDL.h>
 
-#include "basicinlines.h"
 #include "bitmap.h"
 #include "c_console.h"
 #include "c_dispatch.h"
