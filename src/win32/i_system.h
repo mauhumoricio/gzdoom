@@ -191,6 +191,4 @@ int I_FindClose (void *handle);
 #define FA_DIREC	0x00000010
 #define FA_ARCH		0x00000020
 
-bool I_ForcePickIWAD();
-
 #endif

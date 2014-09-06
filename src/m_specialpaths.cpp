@@ -385,8 +385,6 @@ FString M_GetAutoexecPath()
 //
 //===========================================================================
 
-#ifndef COCOA_NO_SDL
-
 FString M_GetCajunPath(const char *botfilename)
 {
 	FString path;
@@ -399,8 +397,6 @@ FString M_GetCajunPath(const char *botfilename)
 	}
 	return path;
 }
-
-#endif // !COCOA_NO_SDL
 
 //===========================================================================
 //

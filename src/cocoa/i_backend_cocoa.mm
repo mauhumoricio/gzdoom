@@ -1,8 +1,8 @@
 /*
- ** cocoa_no_sdl.mm
+ ** i_backend_cocoa.mm
  **
  **---------------------------------------------------------------------------
- ** Copyright 2012 Alexey Lysiuk
+ ** Copyright 2012-2014 Alexey Lysiuk
  ** All rights reserved.
  **
  ** Redistribution and use in source and binary forms, with or without
@@ -39,18 +39,14 @@
 #include <pthread.h>
 #include <dlfcn.h>
 
-#define BOOL BOOL_CPP_TYPE
-#include "gl/system/gl_auxilium.h"
-#undef  BOOL
-
-#ifdef min
-#undef min
-#endif
-
 #include <AppKit/AppKit.h>
 #include <Carbon/Carbon.h>
+#include <OpenGL/gl.h>
 
 #include <SDL.h>
+
+// Avoid collision between DObject class and Objective-C
+#define Class ObjectClass
 
 #include "bitmap.h"
 #include "c_console.h"
@@ -63,26 +59,51 @@
 #include "doomstat.h"
 #include "s_sound.h"
 #include "textures.h"
+#include "v_video.h"
 #include "version.h"
+#include "i_rbopts.h"
+
+#undef Class
 
 
-#define GZ_UNUSED( VARIABLE ) ( ( void )( VARIABLE ) )
+#define ZD_UNUSED(VARIABLE) ((void)(VARIABLE))
 
 
 // ---------------------------------------------------------------------------
 
 
-CVAR( Bool, use_mouse,    true,  CVAR_ARCHIVE | CVAR_GLOBALCONFIG )
-CVAR( Bool, m_noprescale, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG )
-CVAR( Bool, m_filter,     false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG )
+#ifndef NSAppKitVersionNumber10_7
 
-CUSTOM_CVAR( Int, mouse_capturemode, 1, CVAR_GLOBALCONFIG | CVAR_ARCHIVE )
+@interface NSView(HiDPIStubs)
+- (NSPoint)convertPointToBacking:(NSPoint)aPoint;
+- (NSSize)convertSizeToBacking:(NSSize)aSize;
+- (NSSize)convertSizeFromBacking:(NSSize)aSize;
+
+- (void)setWantsBestResolutionOpenGLSurface:(BOOL)flag;
+@end
+
+@interface NSScreen(HiDPIStubs)
+- (NSRect)convertRectToBacking:(NSRect)aRect;
+@end
+
+#endif // NSAppKitVersionNumber10_7
+
+
+// ---------------------------------------------------------------------------
+
+RenderBufferOptions rbOpts;
+
+CVAR(Bool, use_mouse,    true,  CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Bool, m_noprescale, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Bool, m_filter,     false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+
+CUSTOM_CVAR(Int, mouse_capturemode, 1, CVAR_GLOBALCONFIG | CVAR_ARCHIVE)
 {
-	if ( self < 0 )
+	if (self < 0)
 	{
 		self = 0;
 	}
-	else if ( self > 2 )
+	else if (self > 2)
 	{
 		self = 2;
 	}
@@ -94,7 +115,7 @@ bool GUICapture;
 extern int paused, chatmodeon;
 extern constate_e ConsoleState;
 
-EXTERN_CVAR( Int, m_use_mouse );
+EXTERN_CVAR(Int, m_use_mouse);
 
 void I_ShutdownJoysticks();
 
@@ -102,12 +123,12 @@ void I_ShutdownJoysticks();
 namespace
 {
 
-const size_t ARGC_MAX = 64;
+const int ARGC_MAX = 64;
 
 int   s_argc;
 char* s_argv[ARGC_MAX];
 
-TArray< FString > s_argvStorage;
+TArray<FString> s_argvStorage;
 
 bool s_restartedFromWADPicker;
 
@@ -122,11 +143,11 @@ NSCursor* s_cursor;
 
 void CheckGUICapture()
 {
-	const bool wantCapture = ( MENU_Off == menuactive )
-		? ( c_down == ConsoleState || c_falling == ConsoleState || chatmodeon )
-		: ( menuactive == MENU_On || menuactive == MENU_OnNoPause );
+	const bool wantCapture = (MENU_Off == menuactive)
+		? (c_down == ConsoleState || c_falling == ConsoleState || chatmodeon)
+		: (menuactive == MENU_On || menuactive == MENU_OnNoPause);
 	
-	if ( wantCapture != GUICapture )
+	if (wantCapture != GUICapture)
 	{
 		GUICapture = wantCapture;
 
@@ -137,29 +158,29 @@ void CheckGUICapture()
 void CenterCursor()
 {
 	NSWindow* window = [NSApp keyWindow];
-	if ( nil == window )
+	if (nil == window)
 	{
 		return;
 	}
 
 	const NSRect  displayRect = [[window screen] frame];
 	const NSRect   windowRect = [window frame];
-	const CGPoint centerPoint = CGPointMake( NSMidX( windowRect ), displayRect.size.height - NSMidY( windowRect ) );
+	const CGPoint centerPoint = CGPointMake(NSMidX(windowRect), displayRect.size.height - NSMidY(windowRect));
 	
-	CGEventSourceRef eventSource = CGEventSourceCreate( kCGEventSourceStateCombinedSessionState );
+	CGEventSourceRef eventSource = CGEventSourceCreate(kCGEventSourceStateCombinedSessionState);
 	
-	if ( NULL != eventSource )
+	if (NULL != eventSource)
 	{
-		CGEventRef mouseMoveEvent = CGEventCreateMouseEvent( eventSource, 
-			kCGEventMouseMoved, centerPoint, kCGMouseButtonLeft );
+		CGEventRef mouseMoveEvent = CGEventCreateMouseEvent(eventSource,
+			kCGEventMouseMoved, centerPoint, kCGMouseButtonLeft);
 		
-		if ( NULL != mouseMoveEvent )
+		if (NULL != mouseMoveEvent)
 		{
-			CGEventPost( kCGHIDEventTap, mouseMoveEvent );
-			CFRelease( mouseMoveEvent );
+			CGEventPost(kCGHIDEventTap, mouseMoveEvent);
+			CFRelease(mouseMoveEvent);
 		}
 		
-		CFRelease( eventSource );
+		CFRelease(eventSource);
 	}
 	
 	// TODO: remove this magic!
@@ -169,7 +190,7 @@ void CenterCursor()
 
 bool IsInGame()
 {
-	switch ( mouse_capturemode )
+	switch (mouse_capturemode)
 	{
 		default:
 		case 0:
@@ -183,20 +204,20 @@ bool IsInGame()
 	}
 }
 
-void SetNativeMouse( bool wantNative )
+void SetNativeMouse(bool wantNative)
 {
-	if ( wantNative != s_nativeMouse )
+	if (wantNative != s_nativeMouse)
 	{
 		s_nativeMouse = wantNative;
 		
-		if ( !wantNative )
+		if (!wantNative)
 		{
 			CenterCursor();
 		}
 		
-		CGAssociateMouseAndMouseCursorPosition( wantNative );
+		CGAssociateMouseAndMouseCursorPosition(wantNative);
 		
-		if ( wantNative )
+		if (wantNative)
 		{
 			[NSCursor unhide];
 		}
@@ -209,33 +230,33 @@ void SetNativeMouse( bool wantNative )
 
 void CheckNativeMouse()
 {
-	bool windowed = ( NULL == screen ) || !screen->IsFullscreen();
+	bool windowed = (NULL == screen) || !screen->IsFullscreen();
 	bool wantNative;
 	
-	if ( windowed )
+	if (windowed)
 	{
-		if ( ![NSApp isActive] || !use_mouse )
+		if (![NSApp isActive] || !use_mouse)
 		{
 			wantNative = true;
 		}
-		else if ( MENU_WaitKey == menuactive )
+		else if (MENU_WaitKey == menuactive)
 		{
 			wantNative = false;
 		}
 		else
 		{
-			wantNative = ( !m_use_mouse || MENU_WaitKey != menuactive )
-				&& ( !IsInGame() || GUICapture || paused || demoplayback );
+			wantNative = (!m_use_mouse || MENU_WaitKey != menuactive)
+				&& (!IsInGame() || GUICapture || paused || demoplayback);
 		}
 	}
 	else
 	{
 		// ungrab mouse when in the menu with mouse control on.		
 		wantNative = m_use_mouse 
-			&& ( MENU_On == menuactive || MENU_OnNoPause == menuactive );
+			&& (MENU_On == menuactive || MENU_OnNoPause == menuactive);
 	}
 	
-	SetNativeMouse( wantNative );
+	SetNativeMouse(wantNative);
 }
 
 } // unnamed namespace
@@ -287,7 +308,7 @@ const size_t KEY_COUNT = 128;
 
 // See Carbon -> HIToolbox -> Events.h for kVK_ constants
 
-const uint8_t KEYCODE_TO_DIK[ KEY_COUNT ] =
+const uint8_t KEYCODE_TO_DIK[KEY_COUNT] =
 {
 	DIK_A,        DIK_S,             DIK_D,         DIK_F,        DIK_H,           DIK_G,       DIK_Z,        DIK_X,          // 0x00 - 0x07
 	DIK_C,        DIK_V,             0,             DIK_B,        DIK_Q,           DIK_W,       DIK_E,        DIK_R,          // 0x08 - 0x0F
@@ -307,7 +328,7 @@ const uint8_t KEYCODE_TO_DIK[ KEY_COUNT ] =
 	DIK_F2,       0,                 DIK_F1,        DIK_LEFT,     DIK_RIGHT,       DIK_DOWN,    DIK_UP,       0,              // 0x78 - 0x7F	
 };
 
-const uint8_t KEYCODE_TO_ASCII[ KEY_COUNT ] =
+const uint8_t KEYCODE_TO_ASCII[KEY_COUNT] =
 {
 	'a', 's',  'd', 'f', 'h', 'g', 'z',  'x', // 0x00 - 0x07
 	'c', 'v',    0, 'b', 'q', 'w', 'e',  'r', // 0x08 - 0x0F
@@ -328,9 +349,9 @@ const uint8_t KEYCODE_TO_ASCII[ KEY_COUNT ] =
 };
 
 
-uint8_t ModifierToDIK( const uint32_t modifier )
+uint8_t ModifierToDIK(const uint32_t modifier)
 {
-	switch ( modifier )
+	switch (modifier)
 	{
 		case NSAlphaShiftKeyMask: return DIK_CAPITAL;
 		case NSShiftKeyMask:      return DIK_LSHIFT;
@@ -342,25 +363,25 @@ uint8_t ModifierToDIK( const uint32_t modifier )
 	return 0;
 }
 
-SWORD ModifierFlagsToGUIKeyModifiers( NSEvent* theEvent )
+SWORD ModifierFlagsToGUIKeyModifiers(NSEvent* theEvent)
 {
-	const NSUInteger modifiers( [theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask );
-	return ( ( modifiers & NSShiftKeyMask     ) ? GKM_SHIFT : 0 )
-		 | ( ( modifiers & NSControlKeyMask   ) ? GKM_CTRL  : 0 )
-		 | ( ( modifiers & NSAlternateKeyMask ) ? GKM_ALT   : 0 )
-		 | ( ( modifiers & NSCommandKeyMask   ) ? GKM_META  : 0 );
+	const NSUInteger modifiers([theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask);
+	return ((modifiers & NSShiftKeyMask    ) ? GKM_SHIFT : 0)
+		 | ((modifiers & NSControlKeyMask  ) ? GKM_CTRL  : 0)
+		 | ((modifiers & NSAlternateKeyMask) ? GKM_ALT   : 0)
+		 | ((modifiers & NSCommandKeyMask  ) ? GKM_META  : 0);
 }
 
 bool ShouldGenerateGUICharEvent(NSEvent* theEvent)
 {
-	const NSUInteger modifiers( [theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask );
+	const NSUInteger modifiers([theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask);
 	return !(modifiers & NSControlKeyMask)
 		&& !(modifiers & NSAlternateKeyMask)
 		&& !(modifiers & NSCommandKeyMask)
 		&& !(modifiers & NSFunctionKeyMask);
 }
 
-void ProcessKeyboardFlagsEvent( NSEvent* theEvent )
+void ProcessKeyboardFlagsEvent(NSEvent* theEvent)
 {
 	static const uint32_t FLAGS_MASK =
 		NSDeviceIndependentModifierFlagsMask & ~NSNumericPadKeyMask;
@@ -369,7 +390,7 @@ void ProcessKeyboardFlagsEvent( NSEvent* theEvent )
 	static uint32_t   oldModifiers = 0;
 	const  uint32_t deltaModifiers = modifiers ^ oldModifiers;
 	
-	if ( 0 == deltaModifiers )
+	if (0 == deltaModifiers)
 	{
 		return;
 	}
@@ -377,7 +398,7 @@ void ProcessKeyboardFlagsEvent( NSEvent* theEvent )
 	event_t event = {};
 	
 	event.type  = modifiers > oldModifiers ? EV_KeyDown : EV_KeyUp;
-	event.data1 = ModifierToDIK( deltaModifiers );
+	event.data1 = ModifierToDIK(deltaModifiers);
 
 	oldModifiers = modifiers;
 
@@ -385,7 +406,7 @@ void ProcessKeyboardFlagsEvent( NSEvent* theEvent )
 	// but not per actual key press or release. So treat any event as key down
 	// Also its event should be not be posted in menu and console
 	
-	if ( DIK_CAPITAL == event.data1 )
+	if (DIK_CAPITAL == event.data1)
 	{
 		if (GUICapture)
 		{
@@ -395,31 +416,79 @@ void ProcessKeyboardFlagsEvent( NSEvent* theEvent )
 		event.type = EV_KeyDown;
 	}
 	
-	D_PostEvent( &event );
+	D_PostEvent(&event);
 }
 
-void ProcessKeyboardEventInMenu( NSEvent* theEvent )
+NSStringEncoding GetEncodingForUnicodeCharacter(const unichar character)
 {
-	const NSString* characters = [theEvent characters];
-	const unichar character = [characters length] > 0
-		? [characters characterAtIndex:0]
-		: '\0';
+	if (character >= L'\u0100' && character <= L'\u024F')
+	{
+		return NSWindowsCP1250StringEncoding; // Central and Eastern Europe
+	}
+	else if (character >= L'\u0370' && character <= L'\u03FF')
+	{
+		return NSWindowsCP1253StringEncoding; // Greek
+	}
+	else if (character >= L'\u0400' && character <= L'\u04FF')
+	{
+		return NSWindowsCP1251StringEncoding; // Cyrillic
+	}
 
+	// TODO: add handling for other characters
+	// TODO: Turkish should use NSWindowsCP1254StringEncoding
+
+	return NSWindowsCP1252StringEncoding;
+}
+
+unsigned char GetCharacterFromNSEvent(NSEvent* theEvent)
+{
+	const NSString* unicodeCharacters = [theEvent characters];
+
+	if (0 == [unicodeCharacters length])
+	{
+		return '\0';
+	}
+
+	const unichar unicodeCharacter = [unicodeCharacters characterAtIndex:0];
+	const NSStringEncoding encoding = GetEncodingForUnicodeCharacter(unicodeCharacter);
+
+	unsigned char character = '\0';
+
+	if (NSWindowsCP1252StringEncoding == encoding)
+	{
+		// TODO: make sure that the following is always correct
+		character = unicodeCharacter & 0xFF;
+	}
+	else
+	{
+		const NSData* const characters =
+			[[theEvent characters] dataUsingEncoding:encoding];
+
+		character = [characters length] > 0
+			? *static_cast<const unsigned char*>([characters bytes])
+			: '\0';
+	}
+
+	return character;
+}
+
+void ProcessKeyboardEventInMenu(NSEvent* theEvent)
+{
 	event_t event = {};
 	
 	event.type    = EV_GUI_Event;
 	event.subtype = NSKeyDown == [theEvent type] ? EV_GUI_KeyDown : EV_GUI_KeyUp;
-	event.data2   = character & 0xFF;
-	event.data3   = ModifierFlagsToGUIKeyModifiers( theEvent );
+	event.data2   = GetCharacterFromNSEvent(theEvent);
+	event.data3   = ModifierFlagsToGUIKeyModifiers(theEvent);
 	
-	if ( EV_GUI_KeyDown == event.subtype && [theEvent isARepeat] )
+	if (EV_GUI_KeyDown == event.subtype && [theEvent isARepeat])
 	{
 		event.subtype = EV_GUI_KeyRepeat;
 	}
 	
 	const unsigned short keyCode = [theEvent keyCode];
 	
-	switch ( keyCode )
+	switch (keyCode)
 	{
 		case kVK_Return:        event.data1 = GK_RETURN;    break;
 		case kVK_PageUp:        event.data1 = GK_PGUP;      break;
@@ -446,41 +515,41 @@ void ProcessKeyboardEventInMenu( NSEvent* theEvent )
 		case kVK_F11:           event.data1 = GK_F11;       break;
 		case kVK_F12:           event.data1 = GK_F12;       break;
 		default:
-			event.data1 = KEYCODE_TO_ASCII[ keyCode ];
+			event.data1 = KEYCODE_TO_ASCII[keyCode];
 			break;
 	}
 	
-	if ( event.data1 < 128 )
+	if (event.data1 < 128)
 	{
-		event.data1 = toupper( event.data1 );
+		event.data1 = toupper(event.data1);
 		
-		D_PostEvent( &event );
+		D_PostEvent(&event);
 	}
 	
-	if (   !iscntrl( event.data2 ) 
+	if (!iscntrl(event.data2) 
 		&& EV_GUI_KeyUp != event.subtype
-		&& ShouldGenerateGUICharEvent(theEvent) )
+		&& ShouldGenerateGUICharEvent(theEvent))
 	{
 		event.subtype = EV_GUI_Char;
 		event.data1   = event.data2;
 		event.data2   = event.data3 & GKM_ALT;
 		
-		D_PostEvent( &event );
+		D_PostEvent(&event);
 	}
 }
 
-void ProcessKeyboardEvent( NSEvent* theEvent )
+void ProcessKeyboardEvent(NSEvent* theEvent)
 {
 	const unsigned short keyCode = [theEvent keyCode];
-	if ( keyCode >= KEY_COUNT )
+	if (keyCode >= KEY_COUNT)
 	{
-		assert( !"Unknown keycode" );
+		assert(!"Unknown keycode");
 		return;
 	}
 
-	if ( GUICapture )
+	if (GUICapture)
 	{
-		ProcessKeyboardEventInMenu( theEvent );
+		ProcessKeyboardEventInMenu(theEvent);
 	}
 	else
 	{
@@ -489,17 +558,40 @@ void ProcessKeyboardEvent( NSEvent* theEvent )
 		event.type  = NSKeyDown == [theEvent type] ? EV_KeyDown : EV_KeyUp;
 		event.data1 = KEYCODE_TO_DIK[ keyCode ];
 		
-		if ( 0 != event.data1 )
+		if (0 != event.data1)
 		{
 			event.data2 = KEYCODE_TO_ASCII[ keyCode ];
 			
-			D_PostEvent( &event );
+			D_PostEvent(&event);
 		}
 	}
 }
 
 
-void NSEventToGameMousePosition( NSEvent* inEvent, event_t* outEvent )
+bool IsHiDPISupported()
+{
+#ifdef NSAppKitVersionNumber10_7
+	return NSAppKitVersionNumber >= NSAppKitVersionNumber10_7;
+#else // !NSAppKitVersionNumber10_7
+	return false;
+#endif // NSAppKitVersionNumber10_7
+}
+
+NSSize GetRealContentViewSize(const NSWindow* const window)
+{
+	const NSView* view = [window contentView];
+	const NSSize frameSize = [view frame].size;
+
+	// TODO: figure out why [NSView frame] returns different values in "fullscreen" and in window
+	// In "fullscreen" the result is multiplied by [NSScreen backingScaleFactor], but not in window
+
+	return (IsHiDPISupported() && NSNormalWindowLevel == [window level])
+		? [view convertSizeToBacking:frameSize]
+		: frameSize;
+}
+
+
+void NSEventToGameMousePosition(NSEvent* inEvent, event_t* outEvent)
 {
 	const NSWindow* window = [inEvent window];
 	const NSView*     view = [window contentView];
@@ -507,32 +599,30 @@ void NSEventToGameMousePosition( NSEvent* inEvent, event_t* outEvent )
 	const NSPoint screenPos = [NSEvent mouseLocation];
 	const NSPoint windowPos = [window convertScreenToBase:screenPos];
 
-	const NSPoint   viewPos =
-#ifdef NSAppKitVersionNumber10_7
-		NSAppKitVersionNumber >= NSAppKitVersionNumber10_7
-			? [view convertPointFromBacking:windowPos] :
-#endif // NSAppKitVersionNumber10_7
-		[view convertPointFromBase:windowPos];
+	const NSPoint   viewPos = IsHiDPISupported()
+		? [view convertPointToBacking:windowPos]
+		: [view convertPointFromBase:windowPos];
 
-	const GLAuxilium::BackBuffer::Parameters& backbufferParameters = GLAuxilium::BackBuffer::GetParameters();
-	const float posX = (                            viewPos.x - backbufferParameters.shiftX ) / backbufferParameters.pixelScale;
-	const float posY = ( [view frame].size.height - viewPos.y - backbufferParameters.shiftY ) / backbufferParameters.pixelScale;
-	
-	outEvent->data1 = static_cast< int >( posX );
-	outEvent->data2 = static_cast< int >( posY );
+	const CGFloat frameHeight = GetRealContentViewSize(window).height;
+
+	const CGFloat posX = (              viewPos.x - rbOpts.shiftX) / rbOpts.pixelScale;
+	const CGFloat posY = (frameHeight - viewPos.y - rbOpts.shiftY) / rbOpts.pixelScale;
+
+	outEvent->data1 = static_cast< int >(posX);
+	outEvent->data2 = static_cast< int >(posY);
 }
 
-void ProcessMouseButtonEvent( NSEvent* theEvent )
+void ProcessMouseButtonEvent(NSEvent* theEvent)
 {
 	event_t event = {};
 	
 	const NSEventType cocoaEventType = [theEvent type];
 	
-	if ( GUICapture )
+	if (GUICapture)
 	{
 		event.type = EV_GUI_Event;
 		
-		switch ( cocoaEventType )
+		switch (cocoaEventType)
 		{
 			case NSLeftMouseDown:  event.subtype = EV_GUI_LButtonDown; break;
 			case NSRightMouseDown: event.subtype = EV_GUI_RButtonDown; break;
@@ -542,13 +632,13 @@ void ProcessMouseButtonEvent( NSEvent* theEvent )
 			case NSOtherMouseUp:   event.subtype = EV_GUI_MButtonUp;   break;
 		}
 		
-		NSEventToGameMousePosition( theEvent, &event );
+		NSEventToGameMousePosition(theEvent, &event);
 		
-		D_PostEvent( &event );
+		D_PostEvent(&event);
 	}
 	else
 	{
-		switch ( cocoaEventType )
+		switch (cocoaEventType)
 		{
 			case NSLeftMouseDown:
 			case NSRightMouseDown:
@@ -565,47 +655,47 @@ void ProcessMouseButtonEvent( NSEvent* theEvent )
 		
 		event.data1 = std::min(KEY_MOUSE1 + [theEvent buttonNumber], NSInteger(KEY_MOUSE8));
 		
-		D_PostEvent( &event );
+		D_PostEvent(&event);
 	}
 }
 
 
-void ProcessMouseMoveInMenu( NSEvent* theEvent )
+void ProcessMouseMoveInMenu(NSEvent* theEvent)
 {
 	event_t event = {};
 	
 	event.type    = EV_GUI_Event;
 	event.subtype = EV_GUI_MouseMove;
 	
-	NSEventToGameMousePosition( theEvent, &event );
+	NSEventToGameMousePosition(theEvent, &event);
 	
-	D_PostEvent( &event );
+	D_PostEvent(&event);
 }
 
-void ProcessMouseMoveInGame( NSEvent* theEvent )
+void ProcessMouseMoveInGame(NSEvent* theEvent)
 {
-	if ( !use_mouse )
+	if (!use_mouse)
 	{
 		return;
 	}	
 	
 	// TODO: remove this magic!
 	
-	if ( s_skipMouseMoves > 0 )
+	if (s_skipMouseMoves > 0)
 	{
 		--s_skipMouseMoves;
 		return;
 	}
 	
-	int x(  [theEvent deltaX] );
-	int y( -[theEvent deltaY] );
+	int x([theEvent deltaX]);
+	int y(-[theEvent deltaY]);
 	
-	if ( 0 == x && 0 == y )
+	if (0 == x && 0 == y)
 	{
 		return;
 	}
 	
-	if ( !m_noprescale )
+	if (!m_noprescale)
 	{
 		x *= 3;
 		y *= 2;
@@ -615,10 +705,10 @@ void ProcessMouseMoveInGame( NSEvent* theEvent )
 	
 	static int lastX = 0, lastY = 0;
 	
-	if ( m_filter )
+	if (m_filter)
 	{
-		event.x = ( x + lastX ) / 2;
-		event.y = ( y + lastY ) / 2;
+		event.x = (x + lastX) / 2;
+		event.y = (y + lastY) / 2;
 	}
 	else
 	{
@@ -629,45 +719,45 @@ void ProcessMouseMoveInGame( NSEvent* theEvent )
 	lastX = x;
 	lastY = y;
 	
-	if ( 0 != event.x | 0 != event.y )
+	if (0 != event.x | 0 != event.y)
 	{
 		event.type = EV_Mouse;
 		
-		D_PostEvent( &event );
+		D_PostEvent(&event);
 	}	
 }
 
-void ProcessMouseMoveEvent( NSEvent* theEvent )
+void ProcessMouseMoveEvent(NSEvent* theEvent)
 {	
-	if ( GUICapture )
+	if (GUICapture)
 	{
-		ProcessMouseMoveInMenu( theEvent );
+		ProcessMouseMoveInMenu(theEvent);
 	}
 	else
 	{
-		ProcessMouseMoveInGame( theEvent );
+		ProcessMouseMoveInGame(theEvent);
 	}
 }
 
 
-void ProcessMouseWheelEvent( NSEvent* theEvent )
+void ProcessMouseWheelEvent(NSEvent* theEvent)
 {
 	const CGFloat delta    = [theEvent deltaY];
-	const bool isZeroDelta = fabs( delta ) < 1.0E-5;
+	const bool isZeroDelta = fabs(delta) < 1.0E-5;
 
-	if ( isZeroDelta && GUICapture )
+	if (isZeroDelta && GUICapture)
 	{
 		return;
 	}
 	
 	event_t event = {};
 	
-	if ( GUICapture )
+	if (GUICapture)
 	{
 		event.type    = EV_GUI_Event;
 		event.subtype = delta > 0.0f ? EV_GUI_WheelUp : EV_GUI_WheelDown;
 		event.data3   = delta;
-		event.data3   = ModifierFlagsToGUIKeyModifiers( theEvent );
+		event.data3   = ModifierFlagsToGUIKeyModifiers(theEvent);
 	}
 	else
 	{
@@ -675,7 +765,7 @@ void ProcessMouseWheelEvent( NSEvent* theEvent )
 		event.data1 = delta > 0.0f ? KEY_MWHEELUP : KEY_MWHEELDOWN;
 	}
 	
-	D_PostEvent( &event );
+	D_PostEvent(&event);
 }
 
 } // unnamed namespace
@@ -774,7 +864,6 @@ void ProcessMouseWheelEvent( NSEvent* theEvent )
 - (int)multisample;
 - (void)setMultisample:(int)multisample;
 
-- (void)initializeOpenGL;
 - (void)changeVideoResolution:(bool)fullscreen width:(int)width height:(int)height;
 
 - (void)processEvents:(NSTimer*)timer;
@@ -813,27 +902,27 @@ static ApplicationDelegate* s_applicationDelegate;
 {
 	// Empty but present to avoid playing of 'beep' alert sound
 	
-	GZ_UNUSED( theEvent );
+	ZD_UNUSED(theEvent);
 }
 
-- (void)keyUp:(NSEvent*)theEvent;
+- (void)keyUp:(NSEvent*)theEvent
 {
 	// Empty but present to avoid playing of 'beep' alert sound
 	
-	GZ_UNUSED( theEvent );
+	ZD_UNUSED(theEvent);
 }
 
 
 - (void)applicationDidBecomeActive:(NSNotification*)aNotification
 {
-	GZ_UNUSED( aNotification );
+	ZD_UNUSED(aNotification);
 	
 	S_SetSoundPaused(1);
 }
 
 - (void)applicationWillResignActive:(NSNotification*)aNotification
 {
-	GZ_UNUSED( aNotification );
+	ZD_UNUSED(aNotification);
 	
 	S_SetSoundPaused(0);
 }
@@ -841,7 +930,7 @@ static ApplicationDelegate* s_applicationDelegate;
 
 - (void)applicationDidFinishLaunching:(NSNotification*)aNotification
 {
-	// When starting from command line with real executable path, e.g. GZDoom.app/Contents/MacOS/GZDoom
+	// When starting from command line with real executable path, e.g. ZDoom.app/Contents/MacOS/ZDoom
 	// application remains deactivated for an unknown reason.
 	// The following call resolves this issue
 	[NSApp activateIgnoringOtherApps:YES];
@@ -856,17 +945,17 @@ static ApplicationDelegate* s_applicationDelegate;
 	[[NSRunLoop mainRunLoop] addTimer:timer
 							  forMode:NSDefaultRunLoopMode];
 
-	exit( SDL_main(s_argc, s_argv) );
+	exit(SDL_main(s_argc, s_argv));
 }
 
 
 - (BOOL)application:(NSApplication*)theApplication openFile:(NSString*)filename
 {
-	GZ_UNUSED( theApplication );
+	ZD_UNUSED(theApplication);
 
-	if ( s_restartedFromWADPicker
+	if (s_restartedFromWADPicker
 		|| 0 == [filename length]
-		|| s_argc + 2 >= ARGC_MAX )
+		|| s_argc + 2 >= ARGC_MAX)
 	{
 		return FALSE;
 	}
@@ -885,10 +974,10 @@ static ApplicationDelegate* s_applicationDelegate;
 		}
 	}
 
-	s_argvStorage.Push( "-file" );
+	s_argvStorage.Push("-file");
 	s_argv[s_argc++] = s_argvStorage.Last().LockBuffer();
 
-	s_argvStorage.Push( [filename UTF8String] );
+	s_argvStorage.Push([filename UTF8String]);
 	s_argv[s_argc++] = s_argvStorage.Last().LockBuffer();
 
 	return TRUE;
@@ -897,7 +986,7 @@ static ApplicationDelegate* s_applicationDelegate;
 
 - (void)applicationWillTerminate:(NSNotification*)aNotification
 {
-	GZ_UNUSED( aNotification );
+	ZD_UNUSED(aNotification);
 	
 	// Hide window as nothing will be rendered at this point
 	[m_window orderOut:nil];
@@ -917,7 +1006,7 @@ static ApplicationDelegate* s_applicationDelegate;
 
 - (void)initializeOpenGL
 {
-	if ( m_openGLInitialized )
+	if (m_openGLInitialized)
 	{
 		return;
 	}
@@ -945,7 +1034,7 @@ static ApplicationDelegate* s_applicationDelegate;
 	attributes[i++] = NSOpenGLPFAStencilSize;
 	attributes[i++] = 8;
 	
-	if ( m_multisample )
+	if (m_multisample)
 	{
 		attributes[i++] = NSOpenGLPFAMultisample;
 		attributes[i++] = NSOpenGLPFASampleBuffers;
@@ -962,73 +1051,95 @@ static ApplicationDelegate* s_applicationDelegate;
 	NSOpenGLView* glView = [[FullscreenView alloc] initWithFrame:contentRect
 													 pixelFormat:pixelFormat];
 	[[glView openGLContext] makeCurrentContext];
+
+	if (IsHiDPISupported())
+	{
+		[glView setWantsBestResolutionOpenGLSurface:YES];
+	}
 	
 	[m_window setContentView:glView];
 	
 	m_openGLInitialized = true;
 }
 
+- (void)fullscreenWithWidth:(int)width height:(int)height
+{
+	NSScreen* screen = [m_window screen];
+
+	const NSRect screenFrame = [screen frame];
+	const NSRect displayRect = IsHiDPISupported()
+		? [screen convertRectToBacking:screenFrame]
+		: screenFrame;
+
+	const float  displayWidth  = displayRect.size.width;
+	const float  displayHeight = displayRect.size.height;
+	
+	const float pixelScaleFactorX = displayWidth  / static_cast< float >(width );
+	const float pixelScaleFactorY = displayHeight / static_cast< float >(height);
+	
+	rbOpts.pixelScale = std::min(pixelScaleFactorX, pixelScaleFactorY);
+	
+	rbOpts.width  = width  * rbOpts.pixelScale;
+	rbOpts.height = height * rbOpts.pixelScale;
+	
+	rbOpts.shiftX = (displayWidth  - rbOpts.width ) / 2.0f;
+	rbOpts.shiftY = (displayHeight - rbOpts.height) / 2.0f;
+
+	[m_window setLevel:NSMainMenuWindowLevel + 1];
+	[m_window setStyleMask:NSBorderlessWindowMask];
+	[m_window setHidesOnDeactivate:YES];
+	[m_window setFrame:displayRect display:YES];
+	[m_window setFrameOrigin:NSMakePoint(0.0f, 0.0f)];
+}
+
+- (void)windowedWithWidth:(int)width height:(int)height
+{
+	rbOpts.pixelScale = 1.0f;
+	
+	rbOpts.width  = static_cast< float >(width );
+	rbOpts.height = static_cast< float >(height);
+	
+	rbOpts.shiftX = 0.0f;
+	rbOpts.shiftY = 0.0f;
+
+	const NSSize windowPixelSize = NSMakeSize(width, height);
+	const NSSize windowSize = IsHiDPISupported()
+		? [[m_window contentView] convertSizeFromBacking:windowPixelSize]
+		: windowPixelSize;
+
+	[m_window setLevel:NSNormalWindowLevel];
+	[m_window setStyleMask:NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask];
+	[m_window setHidesOnDeactivate:NO];
+	[m_window setContentSize:windowSize];
+	[m_window center];
+}
+
 - (void)changeVideoResolution:(bool)fullscreen width:(int)width height:(int)height
 {
 	[self initializeOpenGL];
 	
-	CGLContextObj context = CGLGetCurrentContext();
-	
-	GLAuxilium::BackBuffer::Parameters& backbufferParameters = GLAuxilium::BackBuffer::GetParameters();
-	
-	if ( fullscreen )
+	if (fullscreen)
 	{
-		const NSRect displayRect   = [[m_window screen] frame];
-		const float  displayWidth  = displayRect.size.width;
-		const float  displayHeight = displayRect.size.height;
-		
-		const float pixelScaleFactorX = displayWidth  / static_cast< float >( width  );
-		const float pixelScaleFactorY = displayHeight / static_cast< float >( height );
-		
-		backbufferParameters.pixelScale = std::min( pixelScaleFactorX, pixelScaleFactorY );
-		
-		backbufferParameters.width  = width  * backbufferParameters.pixelScale;
-		backbufferParameters.height = height * backbufferParameters.pixelScale;
-		
-		backbufferParameters.shiftX = ( displayWidth  - backbufferParameters.width  ) / 2.0f;
-		backbufferParameters.shiftY = ( displayHeight - backbufferParameters.height ) / 2.0f;
-		
-		[m_window setLevel:NSMainMenuWindowLevel + 1];
-		[m_window setStyleMask:NSBorderlessWindowMask];
-		[m_window setHidesOnDeactivate:YES];
-		[m_window setFrame:displayRect display:YES];
-		[m_window setFrameOrigin:NSMakePoint( 0.0f, 0.0f )];
+		[self fullscreenWithWidth:width height:height];
 	}
 	else
 	{
-		backbufferParameters.pixelScale = 1.0f;
-		
-		backbufferParameters.width  = static_cast< float >( width  );
-		backbufferParameters.height = static_cast< float >( height );
-		
-		backbufferParameters.shiftX = 0.0f;
-		backbufferParameters.shiftY = 0.0f;
-		
-		[m_window setLevel:NSNormalWindowLevel];
-		[m_window setStyleMask:NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask];
-		[m_window setHidesOnDeactivate:NO];
-		[m_window setContentSize:NSMakeSize( width, height )];
-		[m_window center];
+		[self windowedWithWidth:width height:height];
 	}
+
+	const NSSize viewSize = GetRealContentViewSize(m_window);
 	
-	const NSRect viewRect = [[m_window contentView] frame];
-	
-	glViewport( 0, 0, viewRect.size.width, viewRect.size.height );
-	glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-	glClear( GL_COLOR_BUFFER_BIT );
-	
-	CGLFlushDrawable( context );
-	
+	glViewport(0, 0, viewSize.width, viewSize.height);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	CGLFlushDrawable(CGLGetCurrentContext());
+
 	static NSString* const TITLE_STRING = 
 		[NSString stringWithFormat:@"%s %s", GAMESIG, GetVersionString()];
 	[m_window setTitle:TITLE_STRING];		
 	
-	if ( ![m_window isKeyWindow] )
+	if (![m_window isKeyWindow])
 	{
 		[m_window makeKeyAndOrderFront:nil];
 	}	
@@ -1037,25 +1148,25 @@ static ApplicationDelegate* s_applicationDelegate;
 
 - (void)processEvents:(NSTimer*)timer
 {
-	GZ_UNUSED( timer );
+	ZD_UNUSED(timer);
 	
-    while ( true )
+    while (true)
     {
         NSEvent* event = [NSApp nextEventMatchingMask:NSAnyEventMask
 											untilDate:[NSDate dateWithTimeIntervalSinceNow:0]
 											   inMode:NSDefaultRunLoopMode
 											  dequeue:YES];
-        if ( nil == event )
+        if (nil == event)
         {
             break;
         }
 		
 		const NSEventType eventType = [event type];
 		
-		switch ( eventType )
+		switch (eventType)
 		{
 			case NSMouseMoved:
-				ProcessMouseMoveEvent( event );
+				ProcessMouseMoveEvent(event);
 				break;
 				
 			case NSLeftMouseDown:
@@ -1064,27 +1175,27 @@ static ApplicationDelegate* s_applicationDelegate;
 			case NSRightMouseUp:
 			case NSOtherMouseDown:
 			case NSOtherMouseUp:
-				ProcessMouseButtonEvent( event );
+				ProcessMouseButtonEvent(event);
 				break;
 				
 			case NSLeftMouseDragged:
 			case NSRightMouseDragged:
 			case NSOtherMouseDragged:
-				ProcessMouseButtonEvent( event );
-				ProcessMouseMoveEvent( event );
+				ProcessMouseButtonEvent(event);
+				ProcessMouseMoveEvent(event);
 				break;
 				
 			case NSScrollWheel:
-				ProcessMouseWheelEvent( event );
+				ProcessMouseWheelEvent(event);
 				break;
 				
 			case NSKeyDown:
 			case NSKeyUp:
-				ProcessKeyboardEvent( event );
+				ProcessKeyboardEvent(event);
 				break;
 				
 			case NSFlagsChanged:
-				ProcessKeyboardFlagsEvent( event );
+				ProcessKeyboardFlagsEvent(event);
 				break;
 		}
 		
@@ -1103,7 +1214,7 @@ static ApplicationDelegate* s_applicationDelegate;
 
 - (void)setMainWindowVisible:(bool)visible
 {
-	if ( visible )
+	if (visible)
 	{
 		[m_window orderFront:nil];
 	}
@@ -1119,20 +1230,20 @@ static ApplicationDelegate* s_applicationDelegate;
 // ---------------------------------------------------------------------------
 
 
-void I_SetMainWindowVisible( bool visible )
+void I_SetMainWindowVisible(bool visible)
 {
 	[s_applicationDelegate setMainWindowVisible:visible];
 	
-	SetNativeMouse( !visible );
+	SetNativeMouse(!visible);
 }
 
 
 // ---------------------------------------------------------------------------
 
 
-bool I_SetCursor( FTexture* cursorpic )
+bool I_SetCursor(FTexture* cursorpic)
 {
-	if ( NULL == cursorpic || FTexture::TEX_Null == cursorpic->UseType )
+	if (NULL == cursorpic || FTexture::TEX_Null == cursorpic->UseType)
 	{
 		s_cursor = [NSCursor arrowCursor];
 	}
@@ -1159,28 +1270,28 @@ bool I_SetCursor( FTexture* cursorpic )
 		// Load bitmap data to representation
 		
 		BYTE* buffer = [bitmapImageRep bitmapData];
-		FBitmap bitmap( buffer, imagePitch, imageWidth, imageHeight );
-		cursorpic->CopyTrueColorPixels( &bitmap, 0, 0 );
+		FBitmap bitmap(buffer, imagePitch, imageWidth, imageHeight);
+		cursorpic->CopyTrueColorPixels(&bitmap, 0, 0);
 		
 		// Swap red and blue components in each pixel
 		
-		for ( size_t i = 0; i < size_t( imageWidth * imageHeight ); ++i )
+		for (size_t i = 0; i < size_t(imageWidth * imageHeight); ++i)
 		{
 			const size_t offset = i * 4;
 			
-			const BYTE temp      = buffer[ offset     ];
-			buffer[ offset     ] = buffer[ offset + 2 ];
-			buffer[ offset + 2 ] = temp;
+			const BYTE temp    = buffer[offset    ];
+			buffer[offset    ] = buffer[offset + 2];
+			buffer[offset + 2] = temp;
 		}
 		
 		// Create image from representation and set it as cursor
 		
-		NSData* imageData = [bitmapImageRep representationUsingType: NSPNGFileType
+		NSData* imageData = [bitmapImageRep representationUsingType:NSPNGFileType
 														 properties:nil];		
 		NSImage* cursorImage = [[NSImage alloc] initWithData:imageData];
 		
 		s_cursor = [[NSCursor alloc] initWithImage:cursorImage
-										   hotSpot:NSMakePoint( 0.0f, 0.0f )];
+										   hotSpot:NSMakePoint(0.0f, 0.0f)];
 	}
 	
 	[s_applicationDelegate invalidateCursorRects];
@@ -1192,201 +1303,9 @@ bool I_SetCursor( FTexture* cursorpic )
 // ---------------------------------------------------------------------------
 
 
-static FString MakeBotsConfigPath(const char* const botFileName)
+const char* I_GetBackEndName()
 {
-	NSArray* directories = [[NSFileManager defaultManager] URLsForDirectory:NSApplicationSupportDirectory
-																  inDomains:NSUserDomainMask];
-	const char* path = NULL;
-
-	if ([directories count] > 0)
-	{
-		path = [[[directories objectAtIndex:0] path] UTF8String];
-	}
-
-	if (NULL == path)
-	{
-		// There was a problem obtaining path so use hard-coded one
-		path = "~/Library/Application Support";
-	}
-
-	return FString(path) + "/" GAME_DIR "/" + botFileName;
-}
-
-FString M_GetCajunPath(const char* const botFileName)
-{
-	FString result = MakeBotsConfigPath(botFileName);
-
-	if (!FileExists(result))
-	{
-		NSString* fileName = [NSString stringWithUTF8String:botFileName];
-		NSString* source   = [[NSBundle mainBundle] pathForAuxiliaryExecutable:fileName];
-		
-		[[NSFileManager defaultManager] copyItemAtPath:source
-												toPath:[NSString stringWithUTF8String:result]
-												 error:nil];
-	}
-
-	return result;
-}
-
-
-// ---------------------------------------------------------------------------
-
-
-unsigned int I_MSTime()
-{
-	return SDL_GetTicks();
-}
-
-unsigned int I_FPSTime()
-{
-	return SDL_GetTicks();
-}
-
-
-bool g_isTicFrozen;
-
-
-namespace
-{
-
-timespec GetNextTickTime()
-{
-	timeval tv;
-	gettimeofday( &tv, NULL );
-	
-	static const long MILLISECONDS_IN_SECOND = 1000;
-	static const long MICROSECONDS_IN_SECOND = 1000 * MILLISECONDS_IN_SECOND;
-	static const long NANOSECONDS_IN_SECOND  = 1000 * MICROSECONDS_IN_SECOND;
-	
-	timespec ts;
-	ts.tv_sec = tv.tv_sec;
-	ts.tv_nsec = ( tv.tv_usec + MICROSECONDS_IN_SECOND / TICRATE ) * MILLISECONDS_IN_SECOND;
-	
-	if ( ts.tv_nsec >= NANOSECONDS_IN_SECOND )
-	{
-		ts.tv_sec++;
-		ts.tv_nsec -= NANOSECONDS_IN_SECOND;
-	}
-	
-	return ts;
-}
-
-
-pthread_cond_t  s_timerEvent;
-pthread_mutex_t s_timerMutex;
-pthread_t       s_timerThread;
-
-bool s_timerExitRequested;
-
-uint32_t s_ticStart;
-uint32_t s_ticNext;
-
-uint32_t s_timerStart;
-uint32_t s_timerNext;
-
-int  s_tics;
-
-
-void* TimerThreadFunc( void* )
-{
-	while ( true )
-	{
-		if ( s_timerExitRequested )
-		{
-			break;
-		}
-
-		const timespec timeToNextTick = GetNextTickTime();
-
-		pthread_mutex_lock( &s_timerMutex );
-		pthread_cond_timedwait( &s_timerEvent, &s_timerMutex, &timeToNextTick );
-
-		if ( !g_isTicFrozen )
-		{
-			__sync_add_and_fetch( &s_tics, 1 );
-		}
-
-		s_timerStart = SDL_GetTicks();
-		s_timerNext  = Scale( Scale( s_timerStart, TICRATE, 1000 ) + 1, 1000, TICRATE );
-
-		pthread_cond_signal ( &s_timerEvent );
-		pthread_mutex_unlock( &s_timerMutex );
-	}
-
-	return NULL;
-}
-
-
-void InitTimer()
-{
-	pthread_cond_init ( &s_timerEvent,  NULL );
-	pthread_mutex_init( &s_timerMutex,  NULL );
-	
-	pthread_create( &s_timerThread, NULL, TimerThreadFunc, NULL );
-}
-
-void ReleaseTimer()
-{
-	s_timerExitRequested	= true;
-	
-	pthread_join( s_timerThread, NULL );
-	
-	pthread_mutex_destroy( &s_timerMutex );
-	pthread_cond_destroy ( &s_timerEvent );
-}
-
-} // unnamed namespace
-
-
-int I_GetTimeSelect( bool saveMS )
-{
-	if ( saveMS )
-	{
-		s_ticStart = s_timerStart;
-		s_ticNext  = s_timerNext;
-	}
-	
-	return s_tics;
-}
-
-int I_WaitForTicSelect( int prevTic )
-{
-	assert( !g_isTicFrozen );
-	
-	while ( s_tics <= prevTic )
-	{
-		pthread_mutex_lock( &s_timerMutex );
-		
-		const timespec timeToNextTick = GetNextTickTime();
-		
-		pthread_cond_timedwait( &s_timerEvent, &s_timerMutex, &timeToNextTick );
-		pthread_mutex_unlock  ( &s_timerMutex );
-	}
-	
-	return s_tics;	
-}
-
-void I_FreezeTimeSelect( bool frozen )
-{
-	g_isTicFrozen = frozen;
-}
-
-
-fixed_t I_GetTimeFrac( uint32* ms )
-{
-	const uint32_t now = SDL_GetTicks();
-	
-	if ( NULL != ms )
-	{
-		*ms = s_ticNext;
-	}
-	
-	const uint32_t step = s_ticNext - s_ticStart;
-	
-	return 0 == step
-		? FRACUNIT
-		: clamp< fixed_t >( ( now - s_ticStart ) * FRACUNIT / step, 0, FRACUNIT );
+	return "Native Cocoa";
 }
 
 
@@ -1405,35 +1324,35 @@ struct SDL_mutex
 SDL_mutex* SDL_CreateMutex()
 {
 	pthread_mutexattr_t attributes;
-	pthread_mutexattr_init( &attributes );
-	pthread_mutexattr_settype( &attributes, PTHREAD_MUTEX_RECURSIVE );
+	pthread_mutexattr_init(&attributes);
+	pthread_mutexattr_settype(&attributes, PTHREAD_MUTEX_RECURSIVE);
 	
 	SDL_mutex* result = new SDL_mutex;
 	
-	if ( 0 != pthread_mutex_init( &result->mutex, &attributes ) )
+	if (0 != pthread_mutex_init(&result->mutex, &attributes))
 	{
 		delete result;
 		result = NULL;
 	}
 	
-	pthread_mutexattr_destroy( &attributes );
+	pthread_mutexattr_destroy(&attributes);
 	
 	return result;
 }
 
-int SDL_mutexP( SDL_mutex* mutex )
+int SDL_mutexP(SDL_mutex* mutex)
 {
-	return pthread_mutex_lock( &mutex->mutex );
+	return pthread_mutex_lock(&mutex->mutex);
 }
 
-int SDL_mutexV( SDL_mutex* mutex )
+int SDL_mutexV(SDL_mutex* mutex)
 {
-	return pthread_mutex_unlock( &mutex->mutex );
+	return pthread_mutex_unlock(&mutex->mutex);
 }
 
-void SDL_DestroyMutex( SDL_mutex* mutex )
+void SDL_DestroyMutex(SDL_mutex* mutex)
 {
-	pthread_mutex_destroy( &mutex->mutex );
+	pthread_mutex_destroy(&mutex->mutex);
 	delete mutex;
 }
 
@@ -1443,29 +1362,27 @@ static timeval s_startTicks;
 uint32_t SDL_GetTicks()
 {
 	timeval now;
-	gettimeofday( &now, NULL );
+	gettimeofday(&now, NULL);
 	
 	const uint32_t ticks = 
-		  ( now.tv_sec  - s_startTicks.tv_sec  ) * 1000
-		+ ( now.tv_usec - s_startTicks.tv_usec ) / 1000;
+		  (now.tv_sec  - s_startTicks.tv_sec ) * 1000
+		+ (now.tv_usec - s_startTicks.tv_usec) / 1000;
 	
 	return ticks;
 }
 
 
-int SDL_Init( Uint32 flags )
+int SDL_Init(Uint32 flags)
 {
-	GZ_UNUSED( flags );
+	ZD_UNUSED(flags);
 
 	return 0;
 }
 
 void SDL_Quit()
 {
-	if ( NULL != s_applicationDelegate )
+	if (NULL != s_applicationDelegate)
 	{
-		ReleaseTimer();
-
 		[NSApp setDelegate:nil];
 		[NSApp deactivate];
 
@@ -1482,9 +1399,9 @@ char* SDL_GetError()
 }
 
 
-char* SDL_VideoDriverName( char* namebuf, int maxlen )
+char* SDL_VideoDriverName(char* namebuf, int maxlen)
 {
-	return strncpy( namebuf, "Native OpenGL", maxlen );
+	return strncpy(namebuf, "Native OpenGL", maxlen);
 }
 
 const SDL_VideoInfo* SDL_GetVideoInfo()
@@ -1492,12 +1409,12 @@ const SDL_VideoInfo* SDL_GetVideoInfo()
 	// NOTE: Only required fields are assigned
 	
 	static SDL_PixelFormat pixelFormat;
-	memset( &pixelFormat, 0, sizeof( pixelFormat ) );
+	memset(&pixelFormat, 0, sizeof(pixelFormat));
 	
 	pixelFormat.BitsPerPixel = 32;
 	
 	static SDL_VideoInfo videoInfo;
-	memset( &videoInfo, 0, sizeof( videoInfo ) );
+	memset(&videoInfo, 0, sizeof(videoInfo));
 	
 	const NSRect displayRect = [[NSScreen mainScreen] frame];
 	
@@ -1508,52 +1425,58 @@ const SDL_VideoInfo* SDL_GetVideoInfo()
 	return &videoInfo;
 }
 
-SDL_Rect** SDL_ListModes( SDL_PixelFormat* format, Uint32 flags )
+SDL_Rect** SDL_ListModes(SDL_PixelFormat* format, Uint32 flags)
 {
-	GZ_UNUSED( format );
-	GZ_UNUSED( flags );
+	ZD_UNUSED(format);
+	ZD_UNUSED(flags);
 	
 	static std::vector< SDL_Rect* > resolutions;
 	
-	if ( resolutions.empty() )
+	if (resolutions.empty())
 	{
-#define DEFINE_RESOLUTION( WIDTH, HEIGHT )                                   \
+#define DEFINE_RESOLUTION(WIDTH, HEIGHT)                                   \
 	static SDL_Rect resolution_##WIDTH##_##HEIGHT = { 0, 0, WIDTH, HEIGHT }; \
-	resolutions.push_back( &resolution_##WIDTH##_##HEIGHT );
+	resolutions.push_back(&resolution_##WIDTH##_##HEIGHT);
 		
-		DEFINE_RESOLUTION(  640,  480 );
-		DEFINE_RESOLUTION(  720,  480 );
-		DEFINE_RESOLUTION(  800,  600 );
-		DEFINE_RESOLUTION( 1024,  640 );
-		DEFINE_RESOLUTION( 1024,  768 );
-		DEFINE_RESOLUTION( 1152,  720 );
-		DEFINE_RESOLUTION( 1280,  720 );
-		DEFINE_RESOLUTION( 1280,  800 );
-		DEFINE_RESOLUTION( 1280,  960 );
-		DEFINE_RESOLUTION( 1280, 1024 );
-		DEFINE_RESOLUTION( 1366,  768 );
-		DEFINE_RESOLUTION( 1400, 1050 );
-		DEFINE_RESOLUTION( 1440,  900 );
-		DEFINE_RESOLUTION( 1600,  900 );
-		DEFINE_RESOLUTION( 1600, 1200 );
-		DEFINE_RESOLUTION( 1680, 1050 );
-		DEFINE_RESOLUTION( 1920, 1080 );
-		DEFINE_RESOLUTION( 1920, 1200 );
-		DEFINE_RESOLUTION( 2048, 1536 );
-		DEFINE_RESOLUTION( 2560, 1440 );
-		DEFINE_RESOLUTION( 2560, 1600 );
-		DEFINE_RESOLUTION( 2880, 1800 );
+		DEFINE_RESOLUTION(640,  480);
+		DEFINE_RESOLUTION(720,  480);
+		DEFINE_RESOLUTION(800,  600);
+		DEFINE_RESOLUTION(1024,  640);
+		DEFINE_RESOLUTION(1024,  768);
+		DEFINE_RESOLUTION(1152,  720);
+		DEFINE_RESOLUTION(1280,  720);
+		DEFINE_RESOLUTION(1280,  800);
+		DEFINE_RESOLUTION(1280,  960);
+		DEFINE_RESOLUTION(1280, 1024);
+		DEFINE_RESOLUTION(1366,  768);
+		DEFINE_RESOLUTION(1400, 1050);
+		DEFINE_RESOLUTION(1440,  900);
+		DEFINE_RESOLUTION(1600,  900);
+		DEFINE_RESOLUTION(1600, 1200);
+		DEFINE_RESOLUTION(1680, 1050);
+		DEFINE_RESOLUTION(1920, 1080);
+		DEFINE_RESOLUTION(1920, 1200);
+		DEFINE_RESOLUTION(2048, 1536);
+		DEFINE_RESOLUTION(2560, 1440);
+		DEFINE_RESOLUTION(2560, 1600);
+		DEFINE_RESOLUTION(2880, 1800);
 		
 #undef DEFINE_RESOLUTION
 		
-		resolutions.push_back( NULL );
+		resolutions.push_back(NULL);
 	}
 	
 	return &resolutions[0];
 }
 
+int SDL_ShowCursor(int)
+{
+	// Does nothing
+	return 0;
+}
 
-static GLAuxilium::Texture2D* s_softwareTexture;
+
+static GLuint s_frameBufferTexture = 0;
 
 static const Uint16 BYTES_PER_PIXEL = 4;
 
@@ -1583,25 +1506,26 @@ static SDL_PixelFormat* GetPixelFormat()
 }
 
 
-SDL_Surface* SDL_SetVideoMode( int width, int height, int, Uint32 flags )
+SDL_Surface* SDL_SetVideoMode(int width, int height, int, Uint32 flags)
 {
-	[s_applicationDelegate changeVideoResolution:( SDL_FULLSCREEN & flags ) width:width height:height];
+	[s_applicationDelegate changeVideoResolution:(SDL_FULLSCREEN & flags) width:width height:height];
 	
 	static SDL_Surface result;
 	
-	const bool isSoftwareRenderer = !( SDL_OPENGL & flags );
+	const bool isSoftwareRenderer = !(SDL_OPENGL & flags);
 	
-	if ( isSoftwareRenderer )
+	if (isSoftwareRenderer)
 	{
-		if ( NULL != result.pixels )
+		if (NULL != result.pixels)
 		{
-			free( result.pixels );
+			free(result.pixels);
 		}
 		
-		if ( NULL != s_softwareTexture )
+		if (0 != s_frameBufferTexture)
 		{
-			delete s_softwareTexture;
-			s_softwareTexture = NULL;
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glDeleteTextures(1, &s_frameBufferTexture);
+			s_frameBufferTexture = 0;
 		}
 	}
 	
@@ -1610,7 +1534,7 @@ SDL_Surface* SDL_SetVideoMode( int width, int height, int, Uint32 flags )
 	result.w        = width;
 	result.h        = height;
 	result.pitch    = width * BYTES_PER_PIXEL;
-	result.pixels   = isSoftwareRenderer ? malloc( width * height * BYTES_PER_PIXEL ) : NULL;
+	result.pixels   = isSoftwareRenderer ? malloc(width * height * BYTES_PER_PIXEL) : NULL;
 	result.refcount = 1;
 	
 	result.clip_rect.x = 0;
@@ -1622,10 +1546,10 @@ SDL_Surface* SDL_SetVideoMode( int width, int height, int, Uint32 flags )
 }
 
 
-void SDL_WM_SetCaption( const char* title, const char* icon )
+void SDL_WM_SetCaption(const char* title, const char* icon)
 {
-	GZ_UNUSED( title );
-	GZ_UNUSED( icon );
+	ZD_UNUSED(title);
+	ZD_UNUSED(icon);
 	
 	// Window title is set in SDL_SetVideoMode()
 }
@@ -1642,10 +1566,7 @@ static void ResetSoftwareViewport()
 	glViewport(0, 0, viewport[0], viewport[1]);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	const GLAuxilium::BackBuffer::Parameters& viewportParameters = GLAuxilium::BackBuffer::GetParameters();
-	glViewport(viewportParameters.shiftX, viewportParameters.shiftY,
-			   viewportParameters.width,  viewportParameters.height);
-
+	glViewport(rbOpts.shiftX, rbOpts.shiftY, rbOpts.width, rbOpts.height);
 }
 
 int SDL_WM_ToggleFullScreen(SDL_Surface* surface)
@@ -1663,142 +1584,101 @@ int SDL_WM_ToggleFullScreen(SDL_Surface* surface)
 										   width:surface->w
 										  height:surface->h];
 	ResetSoftwareViewport();
-	
+
 	return 1;
 }
 
-
-void* SDL_GL_GetProcAddress( const char* name )
-{
-	return dlsym( RTLD_DEFAULT, name );
-}	
 
 void SDL_GL_SwapBuffers()
 {
 	[[NSOpenGLContext currentContext] flushBuffer];
 }
 
-int SDL_GL_SetAttribute( SDL_GLattr attr, int value )
+int SDL_GL_SetAttribute(SDL_GLattr attr, int value)
 {
-	if ( SDL_GL_MULTISAMPLESAMPLES == attr )
+	if (SDL_GL_MULTISAMPLESAMPLES == attr)
 	{
 		[s_applicationDelegate setMultisample:value];
 	}
-	
+
 	// Not interested in other attributes
+
+	return 0;
+}
+
+
+int SDL_LockSurface(SDL_Surface* surface)
+{
+	ZD_UNUSED(surface);
 	
 	return 0;
 }
 
-int SDL_GL_GetAttribute( SDL_GLattr attr, int* value )
+void SDL_UnlockSurface(SDL_Surface* surface)
 {
-	switch ( attr )
-	{
-		case SDL_GL_RED_SIZE:           *value = 8;  break;
-		case SDL_GL_GREEN_SIZE:         *value = 8;  break;
-		case SDL_GL_BLUE_SIZE:          *value = 8;  break;
-		case SDL_GL_ALPHA_SIZE:         *value = 8;  break;
-		case SDL_GL_DEPTH_SIZE:         *value = 24; break;
-		case SDL_GL_STENCIL_SIZE:       *value = 8;  break;
-		case SDL_GL_DOUBLEBUFFER:       *value = 1;  break;
-			
-		case SDL_GL_MULTISAMPLEBUFFERS:
-			*value = 0 == [s_applicationDelegate multisample] ? 0 : 1;
-			break;
-			
-		case SDL_GL_MULTISAMPLESAMPLES:
-			*value = [s_applicationDelegate multisample];
-			break;
-			
-		default:
-			// Not interested in other attributes
-			break;
-	}
+	ZD_UNUSED(surface);
+}
+
+int SDL_BlitSurface(SDL_Surface* src, SDL_Rect* srcrect, SDL_Surface* dst, SDL_Rect* dstrect)
+{
+	ZD_UNUSED(src);
+	ZD_UNUSED(srcrect);
+	ZD_UNUSED(dst);
+	ZD_UNUSED(dstrect);
 	
 	return 0;
 }
 
 
-int SDL_GetGammaRamp( Uint16* red, Uint16* green, Uint16* blue )
+static void SetupSoftwareRendering(SDL_Surface* screen)
 {
-	GLAuxilium::BackBuffer* frameBuffer = static_cast< GLAuxilium::BackBuffer* >( screen );
-	
-	if ( NULL != frameBuffer )
-	{
-		frameBuffer->GetGammaTable( red, green, blue );
-	}
-	
-	return 0;
-}
-
-int SDL_SetGammaRamp( const Uint16* red, const Uint16* green, const Uint16* blue )
-{
-	GLAuxilium::BackBuffer* frameBuffer = static_cast< GLAuxilium::BackBuffer* >( screen );
-	
-	if ( NULL != frameBuffer )
-	{
-		frameBuffer->SetGammaTable( red, green, blue );
-	}
-	
-	return 0;
-}
-
-
-int SDL_LockSurface( SDL_Surface* surface )
-{
-	GZ_UNUSED( surface );
-	
-	return 0;
-}
-
-void SDL_UnlockSurface( SDL_Surface* surface )
-{
-	GZ_UNUSED( surface );
-}
-
-int SDL_BlitSurface( SDL_Surface* src, SDL_Rect* srcrect, SDL_Surface* dst, SDL_Rect* dstrect )
-{
-	GZ_UNUSED( src );
-	GZ_UNUSED( srcrect );
-	GZ_UNUSED( dst );
-	GZ_UNUSED( dstrect );
-	
-	return 0;
-}
-
-
-static void SetupSoftwareRendering( SDL_Surface* screen )
-{
-	glMatrixMode( GL_MODELVIEW );
+	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glMatrixMode( GL_PROJECTION );
+	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho( 0.0, screen->w, screen->h, 0.0, -1.0, 1.0 );
-
+	glOrtho(0.0, screen->w, screen->h, 0.0, -1.0, 1.0);
+	
 	ResetSoftwareViewport();
-
-	glEnable( GL_TEXTURE_2D );
 	
-	s_softwareTexture = new GLAuxilium::Texture2D;
-	s_softwareTexture->SetFilter( GLAuxilium::TEXTURE_FILTER_NEAREST );
+	glEnable(GL_TEXTURE_2D);
+	
+	glGenTextures(1, &s_frameBufferTexture);
+	glBindTexture(GL_TEXTURE_2D, s_frameBufferTexture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
-
-int SDL_Flip( SDL_Surface* screen )
+int SDL_Flip(SDL_Surface* screen)
 {
-	assert( NULL != screen );
+	assert(NULL != screen);
 	
-	if ( NULL == s_softwareTexture )
+	if (0 == s_frameBufferTexture)
 	{
-		SetupSoftwareRendering( screen );
+		SetupSoftwareRendering(screen);
 	}
 	
 	const int width  = screen->w;
 	const int height = screen->h;
 	
-	s_softwareTexture->SetImageData( GLAuxilium::TEXTURE_FORMAT_COLOR_RGBA, width, height, screen->pixels );
-	s_softwareTexture->Draw2D( width, -height ); // flipped vertically
-	
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+				 width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, screen->pixels);
+
+	glBegin(GL_QUADS);
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+	glTexCoord2f(0.0f, 0.0f);
+	glVertex2f(0.0f, 0.0f);
+	glTexCoord2f(1.0f, 0.0f);
+	glVertex2f(width, 0.0f);
+	glTexCoord2f(1.0f, 1.0f);
+	glVertex2f(width, height);
+	glTexCoord2f(0.0f, 1.0f);
+	glVertex2f(0.0f, height);
+	glEnd();
+
 	glFlush();
 	
 	SDL_GL_SwapBuffers();
@@ -1806,13 +1686,13 @@ int SDL_Flip( SDL_Surface* screen )
 	return 0;	
 }
 
-int SDL_SetPalette( SDL_Surface* surface, int flags, SDL_Color* colors, int firstcolor, int ncolors )
+int SDL_SetPalette(SDL_Surface* surface, int flags, SDL_Color* colors, int firstcolor, int ncolors)
 {
-	GZ_UNUSED( surface );
-	GZ_UNUSED( flags );
-	GZ_UNUSED( colors );
-	GZ_UNUSED( firstcolor );
-	GZ_UNUSED( ncolors );
+	ZD_UNUSED(surface);
+	ZD_UNUSED(flags);
+	ZD_UNUSED(colors);
+	ZD_UNUSED(firstcolor);
+	ZD_UNUSED(ncolors);
 	
 	return 0;
 }
@@ -1854,11 +1734,6 @@ static void CheckOSVersion()
 
 int main(int argc, char** argv)
 {
-#if 0
-	CFOptionFlags responseFlags;
-	CFUserNotificationDisplayAlert(0, 0, NULL, NULL, NULL, CFSTR("Attach"), NULL, NULL, NULL, NULL, &responseFlags);
-#endif
-
 	CheckOSVersion();
 
 	gettimeofday(&s_startTicks, NULL);
@@ -1867,12 +1742,12 @@ int main(int argc, char** argv)
 	{
 		const char* const argument = argv[i];
 
-		if ( NULL == argument || '\0' == argument[0] )
+		if (NULL == argument || '\0' == argument[0])
 		{
 			continue;
 		}
 
-		if ( 0 == strcmp(argument, "-wad_picker_restart") )
+		if (0 == strcmp(argument, "-wad_picker_restart"))
 		{
 			s_restartedFromWADPicker = true;
 		}
@@ -1890,8 +1765,6 @@ int main(int argc, char** argv)
 
 	s_applicationDelegate = [ApplicationDelegate new];
 	[NSApp setDelegate:s_applicationDelegate];
-
-	InitTimer();
 
 	[NSApp run];
 
