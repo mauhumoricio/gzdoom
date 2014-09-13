@@ -48,6 +48,7 @@
 // Avoid collision between DObject class and Objective-C
 #define Class ObjectClass
 
+#include "b_bot.h"
 #include "bitmap.h"
 #include "c_console.h"
 #include "c_dispatch.h"
@@ -57,6 +58,7 @@
 #include "dikeys.h"
 #include "doomdef.h"
 #include "doomstat.h"
+#include "m_misc.h"
 #include "s_sound.h"
 #include "textures.h"
 #include "v_video.h"
@@ -768,6 +770,24 @@ void ProcessMouseWheelEvent(NSEvent* theEvent)
 	}
 	
 	D_PostEvent(&event);
+}
+
+
+void CopyBotsFile()
+{
+	const FString result = M_GetCajunPath(BOTFILENAME);
+
+	if (FileExists(result))
+	{
+		return;
+	}
+
+	NSString* fileName = [NSString stringWithUTF8String:BOTFILENAME];
+	NSString* source   = [[NSBundle mainBundle] pathForAuxiliaryExecutable:fileName];
+
+	[[NSFileManager defaultManager] copyItemAtPath:source
+											toPath:[NSString stringWithUTF8String:result]
+											 error:nil];
 }
 
 
@@ -1834,6 +1854,8 @@ int main(int argc, char** argv)
 
 	appCtrl = [ApplicationController new];
 	[NSApp setDelegate:appCtrl];
+
+	CopyBotsFile();
 
 	[NSApp run];
 

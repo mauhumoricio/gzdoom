@@ -387,15 +387,20 @@ FString M_GetAutoexecPath()
 
 FString M_GetCajunPath(const char *botfilename)
 {
-	FString path;
+	char cpath[PATH_MAX];
+	FSRef folder;
 
-	// Just copies the Windows code. Should this be more Mac-specific?
-	path << progdir << "zcajun/" << botfilename;
-	if (!FileExists(path))
+	if (noErr == FSFindFolder(kUserDomain, kApplicationSupportFolderType, kCreateFolder, &folder) &&
+		noErr == FSRefMakePath(&folder, (UInt8*)cpath, PATH_MAX))
 	{
-		path = "";
+		FString path;
+		path << cpath << "/" GAME_DIR "/";
+		CreatePath(path);
+		path << botfilename;
+		return path;
 	}
-	return path;
+
+	return botfilename;
 }
 
 //===========================================================================
