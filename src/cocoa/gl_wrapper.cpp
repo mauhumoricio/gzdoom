@@ -771,6 +771,61 @@ void PostProcess::Finish()
 // ---------------------------------------------------------------------------
 
 
+PostProcess* GetPostProcess()
+{
+	BackBuffer* backBuffer = BackBuffer::GetInstance();
+
+	return NULL == backBuffer
+		? NULL
+		: &backBuffer->GetPostProcess();
+}
+
+
+CUSTOM_CVAR(Int, gl_postprocess, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCALL)
+{
+	PostProcess* const postProcess = GetPostProcess();
+
+	if (NULL != postProcess)
+	{
+		postProcess->Release();
+	}
+}
+
+
+bool IsPostProcessActive()
+{
+	return NULL != GetPostProcess() && gl_postprocess > 0;
+}
+
+void StartPostProcess()
+{
+	if (!IsPostProcessActive())
+	{
+		return;
+	}
+
+	PostProcess* const postProcess = GetPostProcess();
+
+	if (!postProcess->IsInitialized())
+	{
+		postProcess->Init("shaders/glsl/fxaa.fp", SCREENWIDTH, SCREENHEIGHT);
+	}
+	
+	postProcess->Start();
+}
+
+void EndPostProcess()
+{
+	if (IsPostProcessActive())
+	{
+		GetPostProcess()->Finish();
+	}
+}
+
+
+// ---------------------------------------------------------------------------
+
+
 CapabilityChecker::CapabilityChecker()
 {
 	static const char ERROR_MESSAGE[] =
@@ -843,6 +898,11 @@ BackBuffer::BackBuffer(void* hMonitor, int width, int height, int bits, int refr
 	m_renderTarget.Bind();
 	glClear(GL_COLOR_BUFFER_BIT);
 	m_renderTarget.Unbind();
+
+	// Post-processing setup
+
+	GLRenderer->beforeRenderView = StartPostProcess;
+	GLRenderer->afterRenderView  = EndPostProcess;
 }
 
 BackBuffer::~BackBuffer()
