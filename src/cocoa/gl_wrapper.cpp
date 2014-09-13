@@ -891,15 +891,23 @@ void BackBuffer::DrawRenderTarget()
 	m_gammaTexture.Bind();
 	glActiveTexture(GL_TEXTURE0);
 
-	GLint viewport[4] = {0};
-	glGetIntegerv(GL_VIEWPORT, viewport);
+	if (rbOpts.dirty)
+	{
+		// TODO: Figure out why the following glClear() call is needed
+		// to avoid drawing of garbage in fullscreen mode when
+		// in-game's aspect ratio is different from display one
+		glClear(GL_COLOR_BUFFER_BIT);
+		
+		rbOpts.dirty = false;
+	}
+
 	glViewport(rbOpts.shiftX, rbOpts.shiftY, rbOpts.width, rbOpts.height);
 
 	m_gammaProgram.Bind(0.0f);
 	colorTexture.Draw2D(Width, Height);
 	glUseProgram(0);
 
-	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+	glViewport(0, 0, Width, Height);
 }
 
 
