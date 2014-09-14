@@ -71,6 +71,9 @@ public:
 
 	FFlatVertexBuffer *mVBO;
 
+	void (*beforeRenderView)();
+	void (*afterRenderView)();
+
 
 	FGLRenderer(OpenGLFrameBuffer *fb);
 	~FGLRenderer() ;

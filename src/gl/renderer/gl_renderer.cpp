@@ -96,6 +96,7 @@ FGLRenderer::FGLRenderer(OpenGLFrameBuffer *fb)
 	gl_spriteindex = 0;
 	mShaderManager = NULL;
 	glpart2 = glpart = gllight = mirrortexture = NULL;
+	beforeRenderView = afterRenderView = NULL;
 }
 
 void FGLRenderer::Initialize()

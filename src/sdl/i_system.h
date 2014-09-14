@@ -163,10 +163,4 @@ static inline char *strlwr(char *str)
 	return str;
 }
 
-bool I_ForcePickIWAD();
-
-#ifdef __APPLE__
-void I_EnableApplicationEvents( bool on );
-#endif // __APPLE__
-
 #endif

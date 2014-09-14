@@ -25,7 +25,6 @@ OptionValue "PostProcess"
 {
 	0, "Off"
 	1, "FXAA"
-	2, "User-defined"
 }
 
 OptionValue "FilterModes"

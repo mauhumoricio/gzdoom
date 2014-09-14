@@ -239,11 +239,7 @@ static void unprotect_rtext()
 void I_StartupJoysticks();
 void I_ShutdownJoysticks();
 
-#ifdef  COCOA_NO_SDL
-#	define BACKEND_VERSION_STRING "Native Cocoa version"
-#else   // !COCOA_NO_SDL
-#	define BACKEND_VERSION_STRING "SDL version"
-#endif  // COCOA_NO_SDL
+const char* I_GetBackEndName();
 
 int main (int argc, char **argv)
 {
@@ -254,8 +250,8 @@ int main (int argc, char **argv)
 	}
 #endif // !__APPLE__
 
-	printf(GAMENAME" %s - %s - " BACKEND_VERSION_STRING "\nCompiled on %s\n",
-		   GetVersionString(), GetGitTime(), __DATE__);
+	printf(GAMENAME" %s - %s - %s version\nCompiled on %s\n",
+		GetVersionString(), GetGitTime(), I_GetBackEndName(), __DATE__);
 
 	seteuid (getuid ());
     std::set_new_handler (NewFailure);

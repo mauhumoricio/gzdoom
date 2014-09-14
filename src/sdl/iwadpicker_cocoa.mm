@@ -33,6 +33,9 @@
  **
  */
 
+// Avoid collision between DObject class and Objective-C
+#define Class ObjectClass
+
 #include "cmdlib.h"
 #include "d_main.h"
 #include "version.h"
@@ -40,10 +43,13 @@
 #include "m_argv.h"
 #include "m_misc.h"
 #include "gameconfigfile.h"
+
+#undef Class
+
 #include <Cocoa/Cocoa.h>
 #include <wordexp.h>
 
-CVAR( String, macosx_additional_parameters, "", CVAR_ARCHIVE | CVAR_NOSET | CVAR_GLOBALCONFIG );
+CVAR(String, osx_additional_parameters, "", CVAR_ARCHIVE | CVAR_NOSET | CVAR_GLOBALCONFIG);
 
 enum
 {
@@ -257,14 +263,14 @@ static NSArray* GetKnownExtensions()
 	cancelled = false;
 
 	app = [NSApplication sharedApplication];
-	id windowTitle = [NSString stringWithFormat:@"%s %s", GAMESIG, GetVersionString()];
+	id windowTitle = [NSString stringWithFormat:@"%s %s", GAMENAME, GetVersionString()];
 
 	NSRect frame = NSMakeRect(0, 0, 440, 450);
 	window = [[NSWindow alloc] initWithContentRect:frame styleMask:NSTitledWindowMask backing:NSBackingStoreBuffered defer:NO];
 	[window setTitle:windowTitle];
 
 	NSTextField *description = [[NSTextField alloc] initWithFrame:NSMakeRect(18, 384, 402, 50)];
-	[self makeLabel:description withString:"GZDoom found more than one IWAD\nSelect from the list below to determine which one to use:"];
+	[self makeLabel:description withString:GAMENAME " found more than one IWAD\nSelect from the list below to determine which one to use:"];
 	[[window contentView] addSubview:description];
 	[description release];
 
@@ -300,7 +306,7 @@ static NSArray* GetKnownExtensions()
 	[self makeLabel:additionalParametersLabel withString:"Additional Parameters:"];
 	[[window contentView] addSubview:additionalParametersLabel];
 	parametersTextField = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 48, 402, 54)];
-	[parametersTextField setStringValue:[NSString stringWithUTF8String:macosx_additional_parameters]];
+	[parametersTextField setStringValue:[NSString stringWithUTF8String:osx_additional_parameters]];
 	[[window contentView] addSubview:parametersTextField];
 
 	// Doesn't look like the SDL version implements this so lets not show it.
@@ -368,32 +374,49 @@ static NSArray* GetKnownExtensions()
 @end
 
 
-EXTERN_CVAR( String, defaultiwad )
+EXTERN_CVAR(String, defaultiwad)
 
-static void RestartWithParameters( const char* iwadPath, NSString* parameters )
+static NSString* GetArchitectureString()
 {
-	assert( nil != parameters );
+#ifdef __i386__
+	return @"i386";
+#elif defined __x86_64__
+	return @"x86_64";
+#elif defined __ppc__
+	return @"ppc";
+#elif defined __ppc64__
+	return @"ppc64";
+#endif
+}
+
+static void RestartWithParameters(const char* iwadPath, NSString* parameters)
+{
+	assert(nil != parameters);
 	
-	defaultiwad = ExtractFileBase( iwadPath );
+	defaultiwad = ExtractFileBase(iwadPath);
 	
-	GameConfig->DoGameSetup( "Doom" );
-	M_SaveDefaults( NULL );
+	GameConfig->DoGameSetup("Doom");
+	M_SaveDefaults(NULL);
 	
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
 	@try
 	{
 		const int commandLineParametersCount = Args->NumArgs();
-		assert( commandLineParametersCount > 0 );
+		assert(commandLineParametersCount > 0);
 		
 		NSString* executablePath = [NSString stringWithUTF8String:Args->GetArg(0)];
+		NSString* architecture   = GetArchitectureString();
 		
-		NSMutableArray* arguments = [NSMutableArray arrayWithCapacity:commandLineParametersCount + 3];
+		NSMutableArray* arguments = [NSMutableArray arrayWithCapacity:commandLineParametersCount + 6];
+		[arguments addObject:@"-arch"];
+		[arguments addObject:architecture];
+		[arguments addObject:executablePath];
 		[arguments addObject:@"-wad_picker_restart"];
 		[arguments addObject:@"-iwad"];
 		[arguments addObject:[NSString stringWithUTF8String:iwadPath]];
 
-		for ( int i = 1; i < commandLineParametersCount; ++i )
+		for (int i = 1; i < commandLineParametersCount; ++i)
 		{
 			NSString* currentParameter = [NSString stringWithUTF8String:Args->GetArg(i)];
 			[arguments addObject:currentParameter];
@@ -413,46 +436,40 @@ static void RestartWithParameters( const char* iwadPath, NSString* parameters )
 			wordfree(&expansion);
 		}
 
-		[NSTask launchedTaskWithLaunchPath:executablePath arguments:arguments];
+		[NSTask launchedTaskWithLaunchPath:@"/usr/bin/arch" arguments:arguments];
 
 		_exit(0); // to avoid atexit()'s functions
 	}
-	@catch ( NSException* e )
+	@catch (NSException* e)
 	{
-		NSLog( @"Cannot restart: %@", [e reason] );
+		NSLog(@"Cannot restart: %@", [e reason]);
 	}
 	
 	[pool release];
 }
 
-#ifdef COCOA_NO_SDL
-void I_SetMainWindowVisible( bool visible );
-#endif // COCOA_NO_SDL
+void I_SetMainWindowVisible(bool visible);
 
 // Simple wrapper so we can call this from outside.
 int I_PickIWad_Cocoa (WadStuff *wads, int numwads, bool showwin, int defaultiwad)
 {
 	NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
 
-#ifdef COCOA_NO_SDL
-	I_SetMainWindowVisible( false );
-#endif // COCOA_NO_SDL
+	I_SetMainWindowVisible(false);
 
 	IWADPicker *picker = [IWADPicker alloc];
 	int ret = [picker pickIWad:wads num:numwads showWindow:showwin defaultWad:defaultiwad];
 
-#ifdef COCOA_NO_SDL
-	I_SetMainWindowVisible( true );
-#endif // COCOA_NO_SDL
+	I_SetMainWindowVisible(true);
 
 	NSString* parametersToAppend = [picker commandLineParameters];
-	macosx_additional_parameters = [parametersToAppend UTF8String];
+	osx_additional_parameters = [parametersToAppend UTF8String];
 
-	if ( ret >= 0 )
+	if (ret >= 0)
 	{
-		if ( 0 != [parametersToAppend length] )
+		if (0 != [parametersToAppend length])
 		{
-			RestartWithParameters( wads[ ret ].Path, parametersToAppend );
+			RestartWithParameters(wads[ret].Path, parametersToAppend);
 		}
 	}
 
