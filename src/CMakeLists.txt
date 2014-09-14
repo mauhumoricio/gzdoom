@@ -690,12 +690,13 @@ else( WIN32 )
 	endif( APPLE )
 endif( WIN32 )
 
+if( NOT ASM_SOURCES )
+	set( ASM_SOURCES "" )
+endif( NOT ASM_SOURCES )
+
 if( NO_ASM )
 	add_definitions( -DNOASM )
 else( NO_ASM )
-	if( NOT ASM_SOURCES )
-		set( ASM_SOURCES "" )
-	endif( NOT ASM_SOURCES )
 	if( X64 )
 		ADD_ASM_FILE( asm_x86_64 tmap3 )
 	else( X64 )
@@ -1009,7 +1010,6 @@ add_executable( zdoom WIN32
 	r_drawt.cpp
 	r_main.cpp
 	r_plane.cpp
-	r_polymost.cpp
 	r_segs.cpp
 	r_sky.cpp
 	r_things.cpp

@@ -108,10 +108,6 @@
 #include "r_renderer.h"
 #include "p_local.h"
 
-#ifdef USE_POLYMOST
-#include "r_polymost.h"
-#endif
-
 EXTERN_CVAR(Bool, hud_althud)
 void DrawHUD();
 
@@ -186,9 +182,6 @@ CUSTOM_CVAR (Int, fraglimit, 0, CVAR_SERVERINFO)
 	}
 }
 
-#ifdef USE_POLYMOST
-CVAR(Bool, testpolymost, false, 0)
-#endif
 CVAR (Float, timelimit, 0.f, CVAR_SERVERINFO);
 CVAR (Int, wipetype, 1, CVAR_ARCHIVE);
 CVAR (Int, snd_drawoutput, 0, 0);
@@ -294,10 +287,6 @@ void D_ProcessEvents (void)
 			continue;				// console ate the event
 		if (M_Responder (ev))
 			continue;				// menu ate the event
-		#ifdef USE_POLYMOST
-			if (testpolymost)
-				Polymost_Responder (ev);
-		#endif
 		G_Responder (ev);
 	}
 }
@@ -319,9 +308,6 @@ void D_PostEvent (const event_t *ev)
 	}
 	events[eventhead] = *ev;
 	if (ev->type == EV_Mouse && !paused && menuactive == MENU_Off && ConsoleState != c_down && ConsoleState != c_falling
-#ifdef USE_POLYMOST
-		&& !testpolymost		
-#endif
 		)
 	{
 		if (Button_Mlook.bDown || freelook)
@@ -434,7 +420,7 @@ CVAR (Flag, sv_fastmonsters,	dmflags, DF_FAST_MONSTERS);
 CVAR (Flag, sv_nojump,			dmflags, DF_NO_JUMP);
 CVAR (Flag, sv_allowjump,		dmflags, DF_YES_JUMP);
 CVAR (Flag, sv_nofreelook,		dmflags, DF_NO_FREELOOK);
-CVAR (Flag, sv_respawnsuper,	dmflags, DF_RESPAWN_SUPER);
+CVAR (Flag, sv_allowfreelook,	dmflags, DF_YES_FREELOOK);
 CVAR (Flag, sv_nofov,			dmflags, DF_NO_FOV);
 CVAR (Flag, sv_noweaponspawn,	dmflags, DF_NO_COOP_WEAPON_SPAWN);
 CVAR (Flag, sv_nocrouch,		dmflags, DF_NO_CROUCH);
@@ -451,6 +437,7 @@ CVAR (Flag, sv_coophalveammo,	dmflags, DF_COOP_HALVE_AMMO);
 CVAR (Mask, sv_crouch,			dmflags, DF_NO_CROUCH|DF_YES_CROUCH);
 CVAR (Mask, sv_jump,			dmflags, DF_NO_JUMP|DF_YES_JUMP);
 CVAR (Mask, sv_fallingdamage,	dmflags, DF_FORCE_FALLINGHX|DF_FORCE_FALLINGZD);
+CVAR (Mask, sv_freelook,		dmflags, DF_NO_FREELOOK|DF_YES_FREELOOK);
 
 //==========================================================================
 //
@@ -522,6 +509,8 @@ CVAR (Flag, sv_noautoaim,			dmflags2, DF2_NOAUTOAIM);
 CVAR (Flag, sv_dontcheckammo,		dmflags2, DF2_DONTCHECKAMMO);
 CVAR (Flag, sv_killbossmonst,		dmflags2, DF2_KILLBOSSMONST);
 CVAR (Flag, sv_nocountendmonst,		dmflags2, DF2_NOCOUNTENDMONST);
+CVAR (Flag, sv_respawnsuper,		dmflags2, DF2_RESPAWN_SUPER);
+
 //==========================================================================
 //
 // CVAR compatflags
@@ -793,15 +782,7 @@ void D_Display ()
 
 	hw2d = false;
 
-#ifdef USE_POLYMOST
-	if (testpolymost)
-	{
-		drawpolymosttest();
-		C_DrawConsole(hw2d);
-		M_Drawer();
-	}
-	else
-#endif
+
 	{
 		unsigned int nowtime = I_FPSTime();
 		TexMan.UpdateAnimations(nowtime);
@@ -1381,7 +1362,7 @@ void D_DoAdvanceDemo (void)
 		break;
 	}
 
-	if (pagename)
+	if (pagename.IsNotEmpty())
 	{
 		if (Page != NULL)
 		{
@@ -1660,7 +1641,7 @@ void D_AddConfigWads (TArray<FString> &wadfiles, const char *section)
 			{
 				// D_AddWildFile resets GameConfig's position, so remember it
 				GameConfig->GetPosition (pos);
-				D_AddWildFile (wadfiles, value);
+				D_AddWildFile (wadfiles, ExpandEnvVars(value));
 				// Reset GameConfig's position to get next wad
 				GameConfig->SetPosition (pos);
 			}
@@ -2049,8 +2030,6 @@ static void D_DoomInit()
 	Args->CollectFiles("-playdemo", ".lmp");
 	Args->CollectFiles("-file", NULL);	// anything left goes after -file
 
-	atterm (C_DeinitConsole);
-
 	gamestate = GS_STARTUP;
 
 	SetLanguageIDs ();
@@ -2299,7 +2278,7 @@ void D_DoomMain (void)
 
 	// +logfile gets checked too late to catch the full startup log in the logfile so do some extra check for it here.
 	FString logfile = Args->TakeValue("+logfile");
-	if (logfile != NULL)
+	if (logfile.IsNotEmpty())
 	{
 		execLogfile(logfile);
 	}
@@ -2337,7 +2316,7 @@ void D_DoomMain (void)
 
 		// The IWAD selection dialogue does not show in fullscreen so if the
 		// restart is initiated without a defined IWAD assume for now that it's not going to change.
-		if (iwad.Len() == 0) iwad = lastIWAD;
+		if (iwad.IsEmpty()) iwad = lastIWAD;
 
 		FIWadManager *iwad_man = new FIWadManager;
 		const FIWADInfo *iwad_info = iwad_man->FindIWAD(allwads, iwad, basewad);

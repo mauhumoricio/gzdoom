@@ -1028,7 +1028,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CustomMissile)
 	else if (flags & CMF_CHECKTARGETDEAD)
 	{
 		// Target is dead and the attack shall be aborted.
-		if (self->SeeState != NULL) self->SetState(self->SeeState);
+		if (self->SeeState != NULL && (self->health > 0 || !(self->flags3 & MF3_ISMONSTER))) self->SetState(self->SeeState);
 	}
 }
 
@@ -1340,14 +1340,11 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FireCustomMissile)
 		self->pitch -= pitch;
 		AActor * misl=P_SpawnPlayerMissile (self, x, y, z, ti, shootangle, &linetarget);
 		self->pitch = SavedPlayerPitch;
-		if (Flags & FPF_TRANSFERTRANSLATION)
-		{
-			misl->Translation = self->Translation;
-		}
 
 		// automatic handling of seeker missiles
 		if (misl)
 		{
+			if (Flags & FPF_TRANSFERTRANSLATION) misl->Translation = self->Translation;
 			if (linetarget && misl->flags2&MF2_SEEKERMISSILE) misl->tracer=linetarget;
 			if (!(Flags & FPF_AIMATANGLE))
 			{
