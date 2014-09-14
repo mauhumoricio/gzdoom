@@ -45,6 +45,12 @@
 #include "gl/utility/gl_clock.h"
 
 
+EXTERN_CVAR(Bool, gl_smooth_rendered)
+
+
+// ---------------------------------------------------------------------------
+
+
 namespace
 {
 
@@ -402,8 +408,10 @@ public:
 	PostProcess& GetPostProcess();
 
 
-	void GetGammaTable(     uint16_t* red,       uint16_t* green,       uint16_t* blue);
+	void GetGammaTable(      uint16_t* red,       uint16_t* green,       uint16_t* blue);
 	void SetGammaTable(const uint16_t* red, const uint16_t* green, const uint16_t* blue);
+
+	void SetSmoothPicture(const bool smooth);
 
 private:
 	static BackBuffer*  s_instance;
@@ -594,8 +602,8 @@ bool BoundTextureSaveAsPNG(const GLenum target, const char* const path)
 	}
 
 	const bool result =
-	M_CreatePNG(file, &imageBuffer[0], NULL, SS_BGRA, width, height, width * BYTES_PER_PIXEL)
-	&& M_FinishPNG(file);
+		   M_CreatePNG(file, &imageBuffer[0], NULL, SS_BGRA, width, height, width * BYTES_PER_PIXEL)
+		&& M_FinishPNG(file);
 
 	fclose(file);
 
@@ -620,8 +628,8 @@ RenderTarget::RenderTarget(const GLsizei width, const GLsizei height, const Rend
 	}
 
 	const GLuint depthStencilID = NULL == sharedDepth
-	? m_depthStencil.m_ID
-	: sharedDepth->m_depthStencil.m_ID;
+		? m_depthStencil.m_ID
+		: sharedDepth->m_depthStencil.m_ID;
 
 	glGenFramebuffers(1, &m_ID);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_ID);
@@ -775,7 +783,7 @@ CapabilityChecker::CapabilityChecker()
 BackBuffer* BackBuffer::s_instance;
 
 
-static const uint32_t GAMMA_TABLE_ALPHA = 0xFF000000;
+const uint32_t GAMMA_TABLE_ALPHA = 0xFF000000;
 
 
 BackBuffer::BackBuffer(void* hMonitor, int width, int height, int bits, int refreshHz, bool fullscreen)
@@ -785,11 +793,7 @@ BackBuffer::BackBuffer(void* hMonitor, int width, int height, int bits, int refr
 {
 	s_instance = this;
 
-	const bool isScaled = fabsf(rbOpts.pixelScale - 1.0f) > 0.01f;
-
-	m_renderTarget.GetColorTexture().SetFilter(isScaled
-	   ? TEXTURE_FILTER_LINEAR
-	   : TEXTURE_FILTER_NEAREST);
+	SetSmoothPicture(gl_smooth_rendered);
 
 	// Create gamma correction texture
 
@@ -943,7 +947,26 @@ void BackBuffer::SetGammaTable(const uint16_t* red, const uint16_t* green, const
 	m_gammaTexture.SetImageData(TEXTURE_FORMAT_COLOR_RGBA, 256, 1, m_gammaTable);
 }
 
+void BackBuffer::SetSmoothPicture(const bool smooth)
+{
+	m_renderTarget.GetColorTexture().SetFilter(smooth
+		? TEXTURE_FILTER_LINEAR
+		: TEXTURE_FILTER_NEAREST);
+}
+
 } // unnamed namespace
+
+
+// ---------------------------------------------------------------------------
+
+
+CUSTOM_CVAR(Bool, gl_smooth_rendered, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCALL)
+{
+	if (BackBuffer* backBuffer = BackBuffer::GetInstance())
+	{
+		backBuffer->SetSmoothPicture(self);
+	}
+}
 
 
 // ---------------------------------------------------------------------------
