@@ -765,6 +765,8 @@ void FGLRenderer::DrawBlend(sector_t * viewsector)
 
 void FGLRenderer::EndDrawScene(sector_t * viewsector)
 {
+	gl_RenderState.EnableFog(false);
+
 	// [BB] HUD models need to be rendered here. Make sure that
 	// DrawPlayerSprites is only called once. Either to draw
 	// HUD models or to draw the weapon sprites.
@@ -779,7 +781,6 @@ void FGLRenderer::EndDrawScene(sector_t * viewsector)
 	glDisable(GL_STENCIL_TEST);
 	glDisable(GL_POLYGON_SMOOTH);
 
-	gl_RenderState.EnableFog(false);
 	framebuffer->Begin2D(false);
 
 	ResetViewport();
@@ -918,77 +919,13 @@ sector_t * FGLRenderer::RenderViewpoint (AActor * camera, GL_IRECT * bounds, flo
 //
 //-----------------------------------------------------------------------------
 
-#ifdef COCOA_NO_SDL
-
-#include "gl/system/gl_auxilium.h"
-
-static GLAuxilium::PostProcess* GetPostProcess()
-{
-	GLAuxilium::BackBuffer* backBuffer = GLAuxilium::BackBuffer::GetInstance();
-
-	return NULL == backBuffer
-		? NULL
-		: &backBuffer->GetPostProcess();
-}
-
-static void ReleasePostProcess()
-{
-	GLAuxilium::PostProcess* const postProcess = GetPostProcess();
-
-	if (NULL != postProcess)
-	{
-		postProcess->Release();
-	}
-}
-
-CUSTOM_CVAR(Int, gl_postprocess, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-{
-	ReleasePostProcess();
-}
-
-CUSTOM_CVAR(String, gl_postprocess_shader, "", CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-{
-	ReleasePostProcess();
-}
-
-#endif // COCOA_NO_SDL
-
 void FGLRenderer::RenderView (player_t* player)
 {
-#ifdef COCOA_NO_SDL
-	GLAuxilium::PostProcess* const postProcess = GetPostProcess();
-
-	const bool isPostProcessActive = (NULL != postProcess) && (gl_postprocess > 0);
-	
-	if (isPostProcessActive)
+	if (NULL != beforeRenderView)
 	{
-		if (!postProcess->IsInitialized())
-		{
-			const char* shaderPath;
-
-			switch (gl_postprocess)
-			{
-			case 1:
-				shaderPath = "shaders/glsl/fxaa.fp";
-				break;
-
-			default:
-				shaderPath = gl_postprocess_shader;
-
-				if (0 == strlen(shaderPath))
-				{
-					Printf("No post-processing shader file is set, use gl_postprocess_shader CVAR to specify path to it\n");
-				}
-				break;
-			}
-
-			postProcess->Init(shaderPath, SCREENWIDTH, SCREENHEIGHT);
-		}
-
-		postProcess->Start();
+		beforeRenderView();
 	}
-#endif // COCOA_NO_SDL
-	
+
 	OpenGLFrameBuffer* GLTarget = static_cast<OpenGLFrameBuffer*>(screen);
 	AActor *&LastCamera = GLTarget->LastCamera;
 
@@ -1042,12 +979,10 @@ void FGLRenderer::RenderView (player_t* player)
 	sector_t * viewsector = RenderViewpoint(player->camera, NULL, FieldOfView * 360.0f / FINEANGLES, ratio, fovratio, true, true);
 	EndDrawScene(viewsector);
 
-#ifdef COCOA_NO_SDL
-	if (isPostProcessActive)
+	if (NULL != afterRenderView)
 	{
-		postProcess->Finish();
+		afterRenderView();
 	}
-#endif // COCOA_NO_SDL
 
 	All.Unclock();
 }

@@ -434,7 +434,6 @@ Names
 	"harm1.wad"
 	"hacx.wad"
 	"hacx2.wad"
-	"square1.pk3"
 	"doomxbox.wad"
 	"doom2xbox.wad"
 	"doom.disk"
@@ -443,4 +442,5 @@ Names
 	"doom2_x360.disk"
 	"doom_xbla.disk"
 	"doom2_xbla.disk"
+	"square1.pk3"
 }

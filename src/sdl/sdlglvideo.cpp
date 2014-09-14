@@ -27,11 +27,6 @@
 #include "gl/textures/gl_material.h"
 #include "gl/system/gl_cvars.h"
 
-#ifdef COCOA_NO_SDL
-#include "gl/system/gl_auxilium.h"
-#endif // COCOA_NO_SDL
-
-
 // MACROS ------------------------------------------------------------------
 
 // TYPES -------------------------------------------------------------------
@@ -126,7 +121,7 @@ SDLGLVideo::SDLGLVideo (int parm)
         fprintf( stderr, "Video initialization failed: %s\n",
              SDL_GetError( ) );
     }
-#if !defined _WIN32 && !defined __APPLE__
+#ifndef	_WIN32
 	// mouse cursor is visible by default on linux systems, we disable it by default
 	SDL_ShowCursor (0);
 #endif
@@ -204,12 +199,7 @@ DFrameBuffer *SDLGLVideo::CreateFrameBuffer (int width, int height, bool fullscr
 //		flashAmount = 0;
 	}
 	
-#ifdef COCOA_NO_SDL
-	SDLGLFB *fb = new GLAuxilium::BackBuffer( width, height, fullscreen );
-#else // !COCOA_NO_SDL
 	SDLGLFB *fb = new OpenGLFrameBuffer (0, width, height, 32, 60, fullscreen);
-#endif // COCOA_NO_SDL
-	
 	retry = 0;
 	
 	// If we could not create the framebuffer, try again with slightly
@@ -362,10 +352,6 @@ SDLGLFB::SDLGLFB (void *, int width, int height, int, int, bool fullscreen)
 	char caption[100];
 	mysnprintf(caption, countof(caption), GAMESIG " %s (%s)", GetVersionString(), GetGitTime());
 	SDL_WM_SetCaption(caption, NULL);
-	
-	// Enable processing of application events inside SDL in windowed mode only
-	// TODO: find out why NSBeep() is called in fullscreen mode on each key press (possible SDL issue)
-	I_EnableApplicationEvents( !fullscreen );
 #endif // __APPLE__
 }
 

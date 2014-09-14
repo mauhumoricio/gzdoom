@@ -1,3 +1,4 @@
+#version 120
 
 uniform sampler2D backbuffer;
 uniform sampler1D gammaTable;

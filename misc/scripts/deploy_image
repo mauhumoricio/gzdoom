@@ -35,13 +35,11 @@ cp -R "${BUILD_DIR}/${CONFIGURATION}/GZDoom_$1.app" "${DEPLOY_CONTENT_DIR}/${TAR
 BUNDLE_EXEC_DIR=${DEPLOY_CONTENT_DIR}/${TARGET_BUNDLE_NAME}/Contents/MacOS/
 
 echo "Stripping executables..."
-strip "${BUNDLE_EXEC_DIR}GZDoom_$1"
+strip "${BUNDLE_EXEC_DIR}GZDoom"
 
 echo "Copying supplementary files..."
 mkdir "${DEPLOY_CONTENT_EXTRAS_DIR}/Documentation"
 cp -R docs/ "${DEPLOY_CONTENT_EXTRAS_DIR}/Documentation"
-mkdir "${DEPLOY_CONTENT_EXTRAS_DIR}/Post-Processing Shaders"
-cp -R misc/shaders/ "${DEPLOY_CONTENT_EXTRAS_DIR}/Post-Processing Shaders"
 cp misc/resources/ReadMe.rtf "${DEPLOY_CONTENT_DIR}"
 cp misc/resources/homepage.webloc "${DEPLOY_CONTENT_EXTRAS_DIR}/Visit GZDoom for OS X Homepage.webloc"
 

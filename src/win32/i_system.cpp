@@ -1611,8 +1611,3 @@ FString I_GetLongPathName(FString shortpath)
 	delete[] buff;
 	return longpath;
 }
-
-bool I_ForcePickIWAD()
-{
-	return false;
-}

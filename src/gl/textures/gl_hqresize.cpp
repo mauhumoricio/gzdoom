@@ -50,7 +50,7 @@
 #include "gl/renderer/gl_renderer.h"
 #include "gl/textures/gl_texture.h"
 #include "c_cvars.h"
-#include "gl/hqnx/hqx.h"
+#include "gl/hqnx/hqnx.h"
 #include "gl/xbr/xbrz.h"
 
 CUSTOM_CVAR(Int, gl_texture_hqresize, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCALL)
@@ -184,6 +184,8 @@ static void scale4x(uint32* const input, uint32* const output, const size_t widt
 }
 
 
+static const size_t BYTES_PER_PIXEL = sizeof(uint32);
+
 typedef void (*ScaleFunction)(const size_t scale, const size_t width, const size_t height, uint32* const input, uint32* const output);
 
 
@@ -208,11 +210,15 @@ static void hqNx(const size_t scale, const size_t width, const size_t height, ui
 
 	if (!isInitialized)
 	{
-		hqxInit();
+		InitLUTs();
 		isInitialized = true;
 	}
 
-	void (*function)(uint32_t* input, uint32_t* output, int width, int height) = NULL;
+	CImage image;
+	image.SetImage(reinterpret_cast<unsigned char*>(input), static_cast<int>(width), static_cast<int>(height), 32);
+	image.Convert32To17();
+
+	void (*function)(int* input, unsigned char* output, int width, int height, int pitch) = NULL;
 
 	switch (scale)
 	{
@@ -222,7 +228,8 @@ static void hqNx(const size_t scale, const size_t width, const size_t height, ui
 		default: assert(!"Wrong scale"); return;
 	}
 
-	function(input, output, static_cast<int>(width), static_cast<int>(height));
+	function(reinterpret_cast<int*>(image.m_pBitmap), reinterpret_cast<unsigned char*>(output),
+		static_cast<int>(width), static_cast<int>(height), static_cast<int>(width * scale * BYTES_PER_PIXEL));
 }
 
 #ifdef GZ_USE_LIBDISPATCH
@@ -314,13 +321,11 @@ unsigned char *gl_CreateUpsampledTextureBuffer ( const FTexture *inputTexture, u
 		outWidth = inWidth;
 		outHeight = inHeight;
 		int type = gl_texture_hqresize;
-#if 0
 		// hqNx does not preserve the alpha channel so fall back to ScaleNx for such textures
 		if (hasAlpha && type > 3 && type < 7)
 		{
 			type -= 3;
 		}
-#endif
 
 		struct Scaler
 		{
