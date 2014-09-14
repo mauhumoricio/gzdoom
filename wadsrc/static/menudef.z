@@ -200,6 +200,7 @@ OptionMenu "GLPrefOptions"
 	Option "Rendering quality",			gl_render_precise,				"Precision"
 	Option "Use vertex buffer",			gl_usevbo,						"VBOModes"
 	Option "Post-processing",			gl_postprocess,					"PostProcess"
+	Option "Smooth rendered picture",	gl_smooth_rendered,				"OnOff"
 }
 
 OptionMenu "GLShaderOptions"
