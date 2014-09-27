@@ -9,12 +9,15 @@
 struct particle_t;
 class FCanvasTexture;
 class FFlatVertexBuffer;
+class FSkyVertexBuffer;
+class FModelVertexBuffer;
 class OpenGLFrameBuffer;
 struct FDrawInfo;
 struct pspdef_t;
 class FShaderManager;
 class GLPortal;
 class FGLThreadManager;
+class FLightBuffer;
 
 enum SectorRenderFlags
 {
@@ -61,8 +64,7 @@ public:
 	FTexture *glpart2;
 	FTexture *glpart;
 	FTexture *mirrortexture;
-	FTexture *gllight;
-
+	
 	float mSky1Pos, mSky2Pos;
 
 	FRotator mAngles;
@@ -70,6 +72,9 @@ public:
 	FVector3 mCameraPos;
 
 	FFlatVertexBuffer *mVBO;
+	FSkyVertexBuffer *mSkyVBO;
+	FModelVertexBuffer *mModelVBO;
+	FLightBuffer *mLights;
 
 	void (*beforeRenderView)();
 	void (*afterRenderView)();
@@ -95,7 +100,7 @@ public:
 	void DrawScene(bool toscreen = false);
 	void DrawBlend(sector_t * viewsector);
 
-	void DrawPSprite (player_t * player,pspdef_t *psp,fixed_t sx, fixed_t sy, int cm_index, bool hudModelStep, int OverrideShader);
+	void DrawPSprite (player_t * player,pspdef_t *psp,fixed_t sx, fixed_t sy, bool hudModelStep, int OverrideShader, bool alphatexture);
 	void DrawPlayerSprites(sector_t * viewsector, bool hudModelStep);
 	void DrawTargeterSprites();
 

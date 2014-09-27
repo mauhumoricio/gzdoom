@@ -45,26 +45,10 @@
 #include "c_cvars.h"
 #include "gl/system/gl_interface.h"
 #include "gl/renderer/gl_renderer.h"
+#include "gl/shaders/gl_shader.h"
 #include "gl/data/gl_data.h"
 #include "gl/data/gl_vertexbuffer.h"
 
-
-CUSTOM_CVAR(Int, gl_usevbo, -1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCALL)
-{
-	if (self < -1 || self > 2)
-	{
-		self = 0;
-	}
-	else if (self == -1)
-	{
-		if (!(gl.flags & RFL_NVIDIA)) self = 0;
-		else self = 2;
-	}
-	else if (GLRenderer != NULL && GLRenderer->mVBO != NULL && GLRenderer->mVBO->vbo_arg != self)
-	{
-		Printf("Vertex buffer use will be changed for the next level.\n");
-	}
-}
 
 //==========================================================================
 //
@@ -74,9 +58,10 @@ CUSTOM_CVAR(Int, gl_usevbo, -1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCA
 
 FVertexBuffer::FVertexBuffer()
 {
-	vbo_id = 0;
-	if (gl_usevbo == -1) gl_usevbo.Callback();
+	vao_id = vbo_id = 0;
 	glGenBuffers(1, &vbo_id);
+	glGenVertexArrays(1, &vao_id);
+
 }
 	
 FVertexBuffer::~FVertexBuffer()
@@ -85,6 +70,15 @@ FVertexBuffer::~FVertexBuffer()
 	{
 		glDeleteBuffers(1, &vbo_id);
 	}
+	if (vao_id != 0)
+	{
+		glDeleteVertexArrays(1, &vao_id);
+	}
+}
+
+void FVertexBuffer::BindVBO()
+{
+	glBindVertexArray(vao_id);
 }
 
 //==========================================================================
@@ -96,13 +90,137 @@ FVertexBuffer::~FVertexBuffer()
 FFlatVertexBuffer::FFlatVertexBuffer()
 : FVertexBuffer()
 {
-	vbo_arg = gl_usevbo;
-	map = NULL;
+	if (gl.flags & RFL_BUFFER_STORAGE)
+	{
+		unsigned int bytesize = BUFFER_SIZE * sizeof(FFlatVertex);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
+		glBufferStorage(GL_ARRAY_BUFFER, bytesize, NULL, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+		map = (FFlatVertex*)glMapBufferRange(GL_ARRAY_BUFFER, 0, bytesize, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+		mNumReserved = mIndex = mCurIndex = 0;
+	}
+	else
+	{
+		vbo_shadowdata.Reserve(BUFFER_SIZE);
+		map = &vbo_shadowdata[0];
+
+		for (int i = 0; i < 20; i++)
+		{
+			map[i].Set(0, 0, 0, 100001.f, i);
+		}
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
+		glBufferData(GL_ARRAY_BUFFER, BUFFER_SIZE * sizeof(FFlatVertex), map, GL_STREAM_DRAW);
+		mNumReserved = mIndex = mCurIndex = 20;
+	}
+
+	glBindVertexArray(vao_id);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
+	glVertexAttribPointer(VATTR_VERTEX, 3,GL_FLOAT, false, sizeof(FFlatVertex), &VTO->x);
+	glVertexAttribPointer(VATTR_TEXCOORD, 2,GL_FLOAT, false, sizeof(FFlatVertex), &VTO->u);
+	glEnableVertexAttribArray(VATTR_VERTEX);
+	glEnableVertexAttribArray(VATTR_TEXCOORD);
+	glBindVertexArray(0);
 }
 
 FFlatVertexBuffer::~FFlatVertexBuffer()
 {
-	UnmapVBO();
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+//==========================================================================
+//
+// Renders the buffer's contents with immediate mode functions
+// This is here so that the immediate mode fallback does not need
+// to double all rendering code and can instead reuse the buffer-based version
+//
+//==========================================================================
+
+CUSTOM_CVAR(Int, gl_rendermethod, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCALL)
+{
+	int newself = self;
+	if (newself < 0) newself = 0;
+	if (newself == 0 && (gl.flags & RFL_COREPROFILE)) newself = 1;
+	if (newself > 3) newself = 3;
+}
+
+void FFlatVertexBuffer::ImmRenderBuffer(unsigned int primtype, unsigned int offset, unsigned int count)
+{
+	// this will only get called if we can't acquire a persistently mapped buffer.
+	// Any of the provided methods are rather shitty, with immediate mode being the most reliable across different hardware.
+	// Still, allow this to be set per CVAR, just in case. Fortunately for newer hardware all this nonsense is not needed anymore.
+	switch (gl_rendermethod)
+	{
+	case 0:
+		// trusty old immediate mode
+#ifndef CORE_PROFILE
+		if (!(gl.flags & RFL_COREPROFILE))
+		{
+			glBegin(primtype);
+			for (unsigned int i = 0; i < count; i++)
+			{
+				glVertexAttrib2fv(VATTR_TEXCOORD, &map[offset + i].u);
+				glVertexAttrib3fv(VATTR_VERTEX, &map[offset + i].x);
+			}
+			glEnd();
+			break;
+		}
+#endif
+	case 1:
+		// uniform array
+		if (count > 20)
+		{
+			int start = offset;
+			FFlatVertex ff = map[offset];
+			while (count > 20)
+			{
+
+				if (primtype == GL_TRIANGLE_FAN)
+				{
+					// split up the fan into multiple sub-fans
+					map[offset] = map[start];
+					glUniform1fv(GLRenderer->mShaderManager->GetActiveShader()->fakevb_index, 20 * 5, &map[offset].x);
+					glDrawArrays(primtype, 0, 20);
+					offset += 18;
+					count -= 18;
+				}
+				else
+				{
+					// we only have triangle fans of this size so don't bother with strips and triangles here.
+					break;
+				}
+			}
+			map[offset] = map[start];
+			glUniform1fv(GLRenderer->mShaderManager->GetActiveShader()->fakevb_index, count * 5, &map[offset].x);
+			glDrawArrays(primtype, 0, count);
+			map[offset] = ff;
+		}
+		else
+		{
+			glUniform1fv(GLRenderer->mShaderManager->GetActiveShader()->fakevb_index, count * 5, &map[offset].x);
+			glDrawArrays(primtype, 0, count);
+		}
+		break;
+
+	case 2:
+		// glBufferSubData
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
+		glBufferSubData(GL_ARRAY_BUFFER, offset * sizeof(FFlatVertex), count * sizeof(FFlatVertex), &vbo_shadowdata[offset]);
+		glDrawArrays(primtype, offset, count);
+		break;
+
+	case 3:
+		// glMapBufferRange
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
+		void *p = glMapBufferRange(GL_ARRAY_BUFFER, offset * sizeof(FFlatVertex), count * sizeof(FFlatVertex), GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+		if (p != NULL)
+		{
+			memcpy(p, &vbo_shadowdata[offset], count * sizeof(FFlatVertex));
+			glUnmapBuffer(GL_ARRAY_BUFFER);
+			glDrawArrays(primtype, offset, count);
+		}
+		break;
+	}
 }
 
 //==========================================================================
@@ -118,7 +236,6 @@ void FFlatVertex::SetFlatVertex(vertex_t *vt, const secplane_t & plane)
 	z = plane.ZatPoint(vt->fx, vt->fy);
 	u = vt->fx/64.f;
 	v = -vt->fy/64.f;
-	w = /*dc = df =*/ 0;
 }
 
 //==========================================================================
@@ -260,57 +377,22 @@ void FFlatVertexBuffer::CreateFlatVBO()
 //
 //==========================================================================
 
-void FFlatVertexBuffer::MapVBO()
-{
-	if (map == NULL)
-	{
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
-		map = (FFlatVertex*)glMapBufferRange(GL_ARRAY_BUFFER, 0, vbo_shadowdata.Size() * sizeof(FFlatVertex), 
-			GL_MAP_WRITE_BIT|GL_MAP_FLUSH_EXPLICIT_BIT|GL_MAP_UNSYNCHRONIZED_BIT);
-	}
-}
-
-//==========================================================================
-//
-//
-//
-//==========================================================================
-
-void FFlatVertexBuffer::UnmapVBO()
-{
-	if (map != NULL)
-	{
-		glUnmapBuffer(GL_ARRAY_BUFFER);
-		map = NULL;
-	}
-}
-
-//==========================================================================
-//
-//
-//
-//==========================================================================
-
 void FFlatVertexBuffer::UpdatePlaneVertices(sector_t *sec, int plane)
 {
 	int startvt = sec->vboindex[plane];
 	int countvt = sec->vbocount[plane];
 	secplane_t &splane = sec->GetSecPlane(plane);
 	FFlatVertex *vt = &vbo_shadowdata[startvt];
-	for(int i=0; i<countvt; i++, vt++)
+	FFlatVertex *mapvt = &map[startvt];
+	for(int i=0; i<countvt; i++, vt++, mapvt++)
 	{
 		vt->z = splane.ZatPoint(vt->x, vt->y);
 		if (plane == sector_t::floor && sec->transdoor) vt->z -= 1;
+		mapvt->z = vt->z;
 	}
-	if (gl.flags & RFL_MAP_BUFFER_RANGE)
+	if (!(gl.flags & RFL_BUFFER_STORAGE))
 	{
-		MapVBO();
-		if (map == NULL) return;	// Error
-		memcpy(&map[startvt], &vbo_shadowdata[startvt], countvt * sizeof(FFlatVertex));
-		glFlushMappedBufferRange(GL_ARRAY_BUFFER, startvt * sizeof(FFlatVertex), countvt * sizeof(FFlatVertex));
-	}
-	else
-	{
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
 		glBufferSubData(GL_ARRAY_BUFFER, startvt * sizeof(FFlatVertex), countvt * sizeof(FFlatVertex), &vbo_shadowdata[startvt]);
 	}
 }
@@ -323,12 +405,20 @@ void FFlatVertexBuffer::UpdatePlaneVertices(sector_t *sec, int plane)
 
 void FFlatVertexBuffer::CreateVBO()
 {
-	vbo_shadowdata.Clear();
-	if (vbo_arg > 0)
+	if (!(gl.flags & RFL_NOBUFFER))
 	{
+		vbo_shadowdata.Resize(mNumReserved);
 		CreateFlatVBO();
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
-		glBufferData(GL_ARRAY_BUFFER, vbo_shadowdata.Size() * sizeof(FFlatVertex), &vbo_shadowdata[0], GL_DYNAMIC_DRAW);
+		mCurIndex = mIndex = vbo_shadowdata.Size();
+		if (gl.flags & RFL_BUFFER_STORAGE)
+		{
+			memcpy(map, &vbo_shadowdata[0], vbo_shadowdata.Size() * sizeof(FFlatVertex));
+		}
+		else
+		{
+			glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
+			glBufferSubData(GL_ARRAY_BUFFER, mNumReserved * sizeof(FFlatVertex), (mIndex - mNumReserved) * sizeof(FFlatVertex), &vbo_shadowdata[mNumReserved]);
+		}
 	}
 	else if (sectors)
 	{
@@ -340,27 +430,7 @@ void FFlatVertexBuffer::CreateVBO()
 			sectors[i].vboheight[1] = sectors[i].vboheight[0] = FIXED_MIN;
 		}
 	}
-}
 
-//==========================================================================
-//
-//
-//
-//==========================================================================
-
-void FFlatVertexBuffer::BindVBO()
-{
-	if (vbo_arg > 0)
-	{
-		UnmapVBO();
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-		glVertexPointer(3,GL_FLOAT, sizeof(FFlatVertex), &VTO->x);
-		glTexCoordPointer(2,GL_FLOAT, sizeof(FFlatVertex), &VTO->u);
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-		glDisableClientState(GL_INDEX_ARRAY);
-	}
 }
 
 //==========================================================================
@@ -373,34 +443,26 @@ void FFlatVertexBuffer::CheckPlanes(sector_t *sector)
 {
 	if (sector->GetPlaneTexZ(sector_t::ceiling) != sector->vboheight[sector_t::ceiling])
 	{
-		if (sector->ceilingdata == NULL) // only update if there's no thinker attached
-		{
-			UpdatePlaneVertices(sector, sector_t::ceiling);
-			sector->vboheight[sector_t::ceiling] = sector->GetPlaneTexZ(sector_t::ceiling);
-		}
+		UpdatePlaneVertices(sector, sector_t::ceiling);
+		sector->vboheight[sector_t::ceiling] = sector->GetPlaneTexZ(sector_t::ceiling);
 	}
 	if (sector->GetPlaneTexZ(sector_t::floor) != sector->vboheight[sector_t::floor])
 	{
-		if (sector->floordata == NULL) // only update if there's no thinker attached
-		{
-			UpdatePlaneVertices(sector, sector_t::floor);
-			sector->vboheight[sector_t::floor] = sector->GetPlaneTexZ(sector_t::floor);
-		}
+		UpdatePlaneVertices(sector, sector_t::floor);
+		sector->vboheight[sector_t::floor] = sector->GetPlaneTexZ(sector_t::floor);
 	}
 }
 
 //==========================================================================
 //
 // checks the validity of all planes attached to this sector
-// and updates them if possible. Anything moving will not be
-// updated unless it stops. This is to ensure that we never
-// have to synchronize with the rendering process.
+// and updates them if possible.
 //
 //==========================================================================
 
 void FFlatVertexBuffer::CheckUpdate(sector_t *sector)
 {
-	if (vbo_arg == 2)
+	if (!(gl.flags & RFL_NOBUFFER))
 	{
 		CheckPlanes(sector);
 		sector_t *hs = sector->GetHeightSec();

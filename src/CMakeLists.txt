@@ -1115,6 +1115,7 @@ add_executable( zdoom WIN32 MACOSX_BUNDLE
 	gl/data/gl_data.cpp
 	gl/data/gl_portaldata.cpp
 	gl/data/gl_setup.cpp
+	gl/data/gl_matrix.cpp
 	gl/data/gl_vertexbuffer.cpp
 	gl/dynlights/a_dynlight.cpp
 	gl/utility/gl_clock.cpp
