@@ -90,6 +90,18 @@ void FVertexBuffer::BindVBO()
 FFlatVertexBuffer::FFlatVertexBuffer()
 : FVertexBuffer()
 {
+#ifdef __APPLE__
+	vbo_shadowdata.Reserve(BUFFER_SIZE);
+	map = &vbo_shadowdata[0];
+
+	for (int i = 0; i < 20; i++)
+	{
+		map[i].Set(0, 0, 0, 100001.f, i);
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
+	glBufferData(GL_ARRAY_BUFFER, BUFFER_SIZE * sizeof(FFlatVertex), map, GL_STREAM_DRAW);
+	mNumReserved = mIndex = mCurIndex = 20;
+#else // !__APPLE__
 	if (gl.flags & RFL_BUFFER_STORAGE)
 	{
 		unsigned int bytesize = BUFFER_SIZE * sizeof(FFlatVertex);
@@ -111,6 +123,7 @@ FFlatVertexBuffer::FFlatVertexBuffer()
 		map = &vbo_shadowdata[0];
 	}
 	mNumReserved = mIndex = mCurIndex = 0;
+#endif // __APPLE__
 }
 
 FFlatVertexBuffer::~FFlatVertexBuffer()
@@ -135,7 +148,16 @@ FFlatVertexBuffer::~FFlatVertexBuffer()
 void FFlatVertexBuffer::ImmRenderBuffer(unsigned int primtype, unsigned int offset, unsigned int count)
 {
 	// this will only get called if we can't acquire a persistently mapped buffer.
-#ifndef CORE_PROFILE
+#ifdef __APPLE__
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
+	void *p = glMapBufferRange(GL_ARRAY_BUFFER, offset * sizeof(FFlatVertex), count * sizeof(FFlatVertex), GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+	if (p != NULL)
+	{
+		memcpy(p, &vbo_shadowdata[offset], count * sizeof(FFlatVertex));
+		glUnmapBuffer(GL_ARRAY_BUFFER);
+		glDrawArrays(primtype, offset, count);
+	}
+#elif !defined CORE_PROFILE
 	glBegin(primtype);
 	for (unsigned int i = 0; i < count; i++)
 	{
@@ -313,6 +335,11 @@ void FFlatVertexBuffer::UpdatePlaneVertices(sector_t *sec, int plane)
 		if (plane == sector_t::floor && sec->transdoor) vt->z -= 1;
 		mapvt->z = vt->z;
 	}
+	if (!(gl.flags & RFL_BUFFER_STORAGE))
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
+		glBufferSubData(GL_ARRAY_BUFFER, startvt * sizeof(FFlatVertex), countvt * sizeof(FFlatVertex), &vbo_shadowdata[startvt]);
+	}
 }
 
 //==========================================================================
@@ -323,6 +350,7 @@ void FFlatVertexBuffer::UpdatePlaneVertices(sector_t *sec, int plane)
 
 void FFlatVertexBuffer::CreateVBO()
 {
+#ifndef __APPLE__
 	if (gl.flags & RFL_BUFFER_STORAGE)
 	{
 		vbo_shadowdata.Resize(mNumReserved);
@@ -330,7 +358,9 @@ void FFlatVertexBuffer::CreateVBO()
 		mCurIndex = mIndex = vbo_shadowdata.Size();
 		memcpy(map, &vbo_shadowdata[0], vbo_shadowdata.Size() * sizeof(FFlatVertex));
 	}
-	else if (sectors)
+	else
+#endif // !__APPLE__
+	if (sectors)
 	{
 		// set all VBO info to invalid values so that we can save some checks in the rendering code
 		for(int i=0;i<numsectors;i++)
@@ -340,7 +370,17 @@ void FFlatVertexBuffer::CreateVBO()
 			sectors[i].vboheight[1] = sectors[i].vboheight[0] = FIXED_MIN;
 		}
 	}
+#ifdef __APPLE__
+	else
+	{
+		vbo_shadowdata.Resize(mNumReserved);
+		CreateFlatVBO();
+		mCurIndex = mIndex = vbo_shadowdata.Size();
 
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
+		glBufferSubData(GL_ARRAY_BUFFER, mNumReserved * sizeof(FFlatVertex), (mIndex - mNumReserved) * sizeof(FFlatVertex), &vbo_shadowdata[mNumReserved]);
+	}
+#endif // __APPLE__
 }
 
 //==========================================================================
