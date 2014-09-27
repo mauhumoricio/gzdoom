@@ -547,6 +547,8 @@
 		8ACBD0E519C77304003DF192 /* i_gui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8ACBD0DE19C772AD003DF192 /* i_gui.cpp */; };
 		8ACBD0E619C7730F003DF192 /* i_timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8ACBD0DF19C772AD003DF192 /* i_timer.cpp */; };
 		8AD870F3140A4EC5007A06A9 /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 8AD870F1140A4EC5007A06A9 /* Credits.html */; };
+		8AE8C72D19D732A9001C9263 /* gl_matrix.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AE8C72B19D731BD001C9263 /* gl_matrix.cpp */; };
+		8AE8C72E19D732B4001C9263 /* gl_lightbuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27E0C139126C00095D9A0 /* gl_lightbuffer.cpp */; };
 		8AF2792A1390F0880095D9A0 /* jcomapi.c in Sources */ = {isa = PBXBuildFile; fileRef = 8AF2790B1390F0880095D9A0 /* jcomapi.c */; };
 		8AF2792C1390F0880095D9A0 /* jdapimin.c in Sources */ = {isa = PBXBuildFile; fileRef = 8AF2790D1390F0880095D9A0 /* jdapimin.c */; };
 		8AF2792D1390F0880095D9A0 /* jdapistd.c in Sources */ = {isa = PBXBuildFile; fileRef = 8AF2790E1390F0880095D9A0 /* jdapistd.c */; };
@@ -1596,7 +1598,6 @@
 		8A80DCA117ABB57000917483 /* dehsupp.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = dehsupp.txt; sourceTree = "<group>"; };
 		8A80DCA217ABB57000917483 /* etc.h.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = etc.h.txt; sourceTree = "<group>"; };
 		8A80DCA317ABB57000917483 /* fontdefs.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = fontdefs.txt; sourceTree = "<group>"; };
-		8A80DCA517ABB57000917483 /* gllight.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gllight.png; sourceTree = "<group>"; };
 		8A80DCA617ABB57000917483 /* glpart.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = glpart.png; sourceTree = "<group>"; };
 		8A80DCA717ABB57000917483 /* glpart2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = glpart2.png; sourceTree = "<group>"; };
 		8A80DCA817ABB57000917483 /* mirror.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = mirror.png; sourceTree = "<group>"; };
@@ -1756,7 +1757,6 @@
 		8A80DD8917ABB57000917483 /* gamma_correction.fp */ = {isa = PBXFileReference; lastKnownFileType = text; path = gamma_correction.fp; sourceTree = "<group>"; };
 		8A80DD8A17ABB57000917483 /* main.fp */ = {isa = PBXFileReference; lastKnownFileType = text; path = main.fp; sourceTree = "<group>"; };
 		8A80DD8B17ABB57000917483 /* main.vp */ = {isa = PBXFileReference; lastKnownFileType = text; path = main.vp; sourceTree = "<group>"; };
-		8A80DD8C17ABB57000917483 /* main_colormap.fp */ = {isa = PBXFileReference; lastKnownFileType = text; path = main_colormap.fp; sourceTree = "<group>"; };
 		8A80DD8D17ABB57000917483 /* sndinfo.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = sndinfo.txt; sourceTree = "<group>"; };
 		8A80DD8E17ABB57000917483 /* sndseq.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = sndseq.txt; sourceTree = "<group>"; };
 		8A80DD9017ABB57000917483 /* DSDGACT.flac */ = {isa = PBXFileReference; lastKnownFileType = file; path = DSDGACT.flac; sourceTree = "<group>"; };
@@ -2504,7 +2504,6 @@
 		8A906CAF19556C1D0017F0E4 /* SpecialColormap.pso */ = {isa = PBXFileReference; lastKnownFileType = file; path = SpecialColormap.pso; sourceTree = "<group>"; };
 		8A906CB019556C1D0017F0E4 /* SpecialColormapPal.pso */ = {isa = PBXFileReference; lastKnownFileType = file; path = SpecialColormapPal.pso; sourceTree = "<group>"; };
 		8A906CB119556C1D0017F0E4 /* VertexColor.pso */ = {isa = PBXFileReference; lastKnownFileType = file; path = VertexColor.pso; sourceTree = "<group>"; };
-		8A906CB719556C370017F0E4 /* main_foglayer.fp */ = {isa = PBXFileReference; lastKnownFileType = text; path = main_foglayer.fp; sourceTree = "<group>"; };
 		8A906CB819556CAB0017F0E4 /* doom2_xbox.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = doom2_xbox.txt; sourceTree = "<group>"; };
 		8A906CBA19556CC30017F0E4 /* readyico.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = readyico.png; sourceTree = "<group>"; };
 		8A938D0F13B6039F002627DE /* actorptrselect.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = actorptrselect.cpp; sourceTree = "<group>"; };
@@ -2543,6 +2542,12 @@
 		8ACBD0DE19C772AD003DF192 /* i_gui.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = i_gui.cpp; sourceTree = "<group>"; };
 		8ACBD0DF19C772AD003DF192 /* i_timer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = i_timer.cpp; sourceTree = "<group>"; };
 		8AD870F1140A4EC5007A06A9 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; name = Credits.html; path = misc/resources/Credits.html; sourceTree = "<group>"; };
+		8AE8C72719D73194001C9263 /* burn.fp */ = {isa = PBXFileReference; lastKnownFileType = text; path = burn.fp; sourceTree = "<group>"; };
+		8AE8C72819D73194001C9263 /* func_defaultlight.fp */ = {isa = PBXFileReference; lastKnownFileType = text; path = func_defaultlight.fp; sourceTree = "<group>"; };
+		8AE8C72919D73194001C9263 /* shaderdefs.i */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c.preprocessed; path = shaderdefs.i; sourceTree = "<group>"; };
+		8AE8C72A19D73194001C9263 /* stencil.fp */ = {isa = PBXFileReference; lastKnownFileType = text; path = stencil.fp; sourceTree = "<group>"; };
+		8AE8C72B19D731BD001C9263 /* gl_matrix.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = gl_matrix.cpp; sourceTree = "<group>"; };
+		8AE8C72C19D731BD001C9263 /* gl_matrix.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gl_matrix.h; sourceTree = "<group>"; };
 		8AF278CA1390F0370095D9A0 /* libjpeg_gzdoom.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libjpeg_gzdoom.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8AF2790B1390F0880095D9A0 /* jcomapi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = jcomapi.c; sourceTree = "<group>"; };
 		8AF2790C1390F0880095D9A0 /* jconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = jconfig.h; sourceTree = "<group>"; };
@@ -4086,7 +4091,6 @@
 		8A80DCA417ABB57000917483 /* glstuff */ = {
 			isa = PBXGroup;
 			children = (
-				8A80DCA517ABB57000917483 /* gllight.png */,
 				8A80DCA617ABB57000917483 /* glpart.png */,
 				8A80DCA717ABB57000917483 /* glpart2.png */,
 				8A80DCA817ABB57000917483 /* mirror.png */,
@@ -4264,8 +4268,10 @@
 		8A80DD7917ABB57000917483 /* glsl */ = {
 			isa = PBXGroup;
 			children = (
+				8AE8C72719D73194001C9263 /* burn.fp */,
 				8A80DD7A17ABB57000917483 /* fogboundary.fp */,
 				8A80DD7B17ABB57000917483 /* func_brightmap.fp */,
+				8AE8C72819D73194001C9263 /* func_defaultlight.fp */,
 				8A80DD7C17ABB57000917483 /* func_normal.fp */,
 				8A80DD7D17ABB57000917483 /* func_notexture.fp */,
 				8A80DD7E17ABB57000917483 /* func_warp1.fp */,
@@ -4282,8 +4288,8 @@
 				8A80DD8917ABB57000917483 /* gamma_correction.fp */,
 				8A80DD8A17ABB57000917483 /* main.fp */,
 				8A80DD8B17ABB57000917483 /* main.vp */,
-				8A80DD8C17ABB57000917483 /* main_colormap.fp */,
-				8A906CB719556C370017F0E4 /* main_foglayer.fp */,
+				8AE8C72919D73194001C9263 /* shaderdefs.i */,
+				8AE8C72A19D73194001C9263 /* stencil.fp */,
 			);
 			path = glsl;
 			sourceTree = "<group>";
@@ -6221,6 +6227,8 @@
 			children = (
 				8AF27DFD139126C00095D9A0 /* gl_data.cpp */,
 				8AF27DFE139126C00095D9A0 /* gl_data.h */,
+				8AE8C72B19D731BD001C9263 /* gl_matrix.cpp */,
+				8AE8C72C19D731BD001C9263 /* gl_matrix.h */,
 				8AF27DFF139126C00095D9A0 /* gl_portaldata.cpp */,
 				8AF27E02139126C00095D9A0 /* gl_setup.cpp */,
 				8AF27E03139126C00095D9A0 /* gl_vertexbuffer.cpp */,
@@ -7215,6 +7223,7 @@
 				8A9F536114BB0F2900F3369B /* a_strifestuff.cpp in Sources */,
 				8A9F536214BB0F2900F3369B /* strife_sbar.cpp in Sources */,
 				8A9F536514BB0F2900F3369B /* gl_data.cpp in Sources */,
+				8AE8C72D19D732A9001C9263 /* gl_matrix.cpp in Sources */,
 				8A9F536614BB0F2900F3369B /* gl_portaldata.cpp in Sources */,
 				8A9F536814BB0F2900F3369B /* gl_setup.cpp in Sources */,
 				8A9F536914BB0F2900F3369B /* gl_vertexbuffer.cpp in Sources */,
@@ -7222,6 +7231,7 @@
 				8A9F536B14BB0F2900F3369B /* gl_dynlight.cpp in Sources */,
 				8A9F536C14BB0F2900F3369B /* gl_dynlight1.cpp in Sources */,
 				8A9F536D14BB0F2900F3369B /* gl_glow.cpp in Sources */,
+				8AE8C72E19D732B4001C9263 /* gl_lightbuffer.cpp in Sources */,
 				8A7D86801537055D002D03BD /* hq2x.cpp in Sources */,
 				8A7D867F1537055D002D03BD /* hq3x.cpp in Sources */,
 				8A7D867E1537055C002D03BD /* hq4x.cpp in Sources */,
@@ -8442,7 +8452,7 @@
 			buildSettings = {
 				CONFIGURATION_TEMP_DIR = "$(PROJECT_TEMP_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)_Cocoa";
 				INFOPLIST_FILE = "misc/resources/GZDoom-Info.plist";
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				PRODUCT_NAME = GZDoom_Cocoa;
 			};
 			name = Debug;
@@ -8453,7 +8463,7 @@
 			buildSettings = {
 				CONFIGURATION_TEMP_DIR = "$(PROJECT_TEMP_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)_Cocoa";
 				INFOPLIST_FILE = "misc/resources/GZDoom-Info.plist";
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				PRODUCT_NAME = GZDoom_Cocoa;
 			};
 			name = Release;
@@ -8487,7 +8497,7 @@
 			buildSettings = {
 				CONFIGURATION_TEMP_DIR = "$(PROJECT_TEMP_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)_Cocoa";
 				INFOPLIST_FILE = "misc/resources/GZDoom-Info.plist";
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				PRODUCT_NAME = GZDoom_Cocoa;
 			};
 			name = MaxOptim;

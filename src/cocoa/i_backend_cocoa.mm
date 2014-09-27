@@ -1087,6 +1087,8 @@ static ApplicationController* appCtrl;
 	attributes[i++] = 24;
 	attributes[i++] = NSOpenGLPFAStencilSize;
 	attributes[i++] = 8;
+	attributes[i++] = NSOpenGLPFAOpenGLProfile;
+	attributes[i++] = NSOpenGLProfileVersion3_2Core;
 	
 	if (m_multisample)
 	{
@@ -1810,11 +1812,11 @@ static void CheckOSVersion()
 		return;
 	}
 
-	if (strcmp(version, "10.0") < 0)
+	if (strcmp(version, "11.0") < 0)
 	{
 		CFOptionFlags responseFlags;
 		CFUserNotificationDisplayAlert(0, kCFUserNotificationStopAlertLevel, NULL, NULL, NULL,
-			CFSTR("Unsupported version of OS X"), CFSTR("You need OS X 10.6 or higher running on Intel platform in order to play."),
+			CFSTR("Unsupported version of OS X"), CFSTR("You need OS X 10.7 or higher running on Intel platform in order to play."),
 			NULL, NULL, NULL, &responseFlags);
 
 		exit(EXIT_FAILURE);
