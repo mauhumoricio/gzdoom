@@ -1308,6 +1308,8 @@ void FTextureManager::PrecacheLevel (void)
 	if (demoplayback)
 		return;
 
+	precacheTime = I_MSTime();
+
 	hitlist = new BYTE[cnt];
 	memset (hitlist, 0, cnt);
 
