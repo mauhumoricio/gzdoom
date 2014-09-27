@@ -31,6 +31,21 @@
  **
  */
 
+#include "sdlglvideo.cpp"
+
+extern "C" int SDL_GetGammaRamp(uint16_t* red, uint16_t* green, uint16_t* blue)
+{
+	return 0;
+}
+
+extern "C" int SDL_SetGammaRamp(const uint16_t* red, const uint16_t* green, const uint16_t* blue)
+{
+	return 0;
+}
+
+
+#if 0
+
 #include "doomstat.h"
 #include "c_console.h"
 #include "i_system.h"
@@ -1179,3 +1194,5 @@ int SDL_SetGammaRamp(const uint16_t* red, const uint16_t* green, const uint16_t*
 #include "sdlglvideo.cpp"
 
 #undef OpenGLFrameBuffer
+
+#endif // 0
