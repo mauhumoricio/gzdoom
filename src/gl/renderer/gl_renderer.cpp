@@ -95,6 +95,7 @@ FGLRenderer::FGLRenderer(OpenGLFrameBuffer *fb)
 	mSkyVBO = NULL;
 	gl_spriteindex = 0;
 	mShaderManager = NULL;
+	mSamplerManager = NULL;
 	glpart2 = glpart = mirrortexture = NULL;
 	mLights = NULL;
 	beforeRenderView = afterRenderView = NULL;
