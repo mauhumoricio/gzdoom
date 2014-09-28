@@ -31,21 +31,6 @@
  **
  */
 
-#include "sdlglvideo.cpp"
-
-extern "C" int SDL_GetGammaRamp(uint16_t* red, uint16_t* green, uint16_t* blue)
-{
-	return 0;
-}
-
-extern "C" int SDL_SetGammaRamp(const uint16_t* red, const uint16_t* green, const uint16_t* blue)
-{
-	return 0;
-}
-
-
-#if 0
-
 #include "doomstat.h"
 #include "c_console.h"
 #include "i_system.h"
@@ -58,6 +43,7 @@ extern "C" int SDL_SetGammaRamp(const uint16_t* red, const uint16_t* green, cons
 #include "gl/system/gl_framebuffer.h"
 #include "gl/system/gl_interface.h"
 #include "gl/shaders/gl_shader.h"
+#include "gl/data/gl_vertexbuffer.h"
 #include "gl/utility/gl_clock.h"
 
 
@@ -405,16 +391,7 @@ private:
 // ---------------------------------------------------------------------------
 
 
-struct CapabilityChecker
-{
-	CapabilityChecker();
-};
-
-
-// ---------------------------------------------------------------------------
-
-
-class BackBuffer : public OpenGLFrameBuffer, private CapabilityChecker, private NonCopyable
+class BackBuffer : public OpenGLFrameBuffer, private NonCopyable
 {
 	typedef OpenGLFrameBuffer Super;
 
@@ -556,23 +533,16 @@ void BoundTextureDraw2D(const GLsizei width, const GLsizei height)
 	const float x2 = abs(width );
 	const float y2 = abs(height);
 
-	glDisable(GL_BLEND);
-	glDisable(GL_ALPHA_TEST);
+	gl_RenderState.ResetColor();
+	gl_RenderState.AlphaFunc(GL_GEQUAL, 0.f);
+	gl_RenderState.Apply();
 
-	glBegin(GL_QUADS);
-	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	glTexCoord2f(u0, v1);
-	glVertex2f(x1, y1);
-	glTexCoord2f(u1, v1);
-	glVertex2f(x2, y1);
-	glTexCoord2f(u1, v0);
-	glVertex2f(x2, y2);
-	glTexCoord2f(u0, v0);
-	glVertex2f(x1, y2);
-	glEnd();
-
-	glEnable(GL_ALPHA_TEST);
-	glEnable(GL_BLEND);
+	FFlatVertex* vertex = GLRenderer->mVBO->GetBuffer();
+	vertex->Set(x1, y1, 0, u0, v1); vertex++;
+	vertex->Set(x1, y2, 0, u0, v0); vertex++;
+	vertex->Set(x2, y1, 0, u1, v1); vertex++;
+	vertex->Set(x2, y2, 0, u1, v0); vertex++;
+	GLRenderer->mVBO->RenderCurrent(vertex, GL_TRIANGLE_STRIP);
 }
 
 bool BoundTextureSaveAsPNG(const GLenum target, const char* const path)
@@ -727,7 +697,7 @@ void PostProcess::Init(const char* const shaderName, const GLsizei width, const 
 
 	m_renderTarget = new RenderTarget(m_width, m_height, m_sharedDepth);
 
-	m_shader = new FShader();
+	m_shader = new FShader("PostProcessing");
 	m_shader->Load("PostProcessing", "shaders/glsl/main.vp", shaderName, NULL, "");
 
 	const GLuint program = m_shader->GetHandle();
@@ -781,7 +751,7 @@ void PostProcess::Finish()
 	glActiveTexture(GL_TEXTURE0);
 	colorTexture.Bind();
 
-	m_shader->Bind(0.0f);
+	m_shader->Bind();
 	colorTexture.Draw2D(m_width, m_height);
 	glUseProgram(0);
 }
@@ -845,28 +815,6 @@ void EndPostProcess()
 // ---------------------------------------------------------------------------
 
 
-CapabilityChecker::CapabilityChecker()
-{
-	static const char ERROR_MESSAGE[] =
-		"The graphics hardware in your system does not support %s.\n"
-		"It is required to run this version of " GAMENAME ".\n"
-		"You can try to use SDL-based version where this feature is not mandatory.";
-
-	if (!(gl.flags & RFL_GL_21))
-	{
-		I_FatalError(ERROR_MESSAGE, "OpenGL 2.1");
-	}
-
-	if (!(gl.flags & RFL_FRAMEBUFFER))
-	{
-		I_FatalError(ERROR_MESSAGE, "Frame Buffer Object (FBO)");
-	}
-}
-
-
-// ---------------------------------------------------------------------------
-
-
 BackBuffer* BackBuffer::s_instance;
 
 
@@ -876,6 +824,7 @@ const uint32_t GAMMA_TABLE_ALPHA = 0xFF000000;
 BackBuffer::BackBuffer(void* hMonitor, int width, int height, int bits, int refreshHz, bool fullscreen)
 : OpenGLFrameBuffer(hMonitor, width, height, bits, refreshHz, fullscreen)
 , m_renderTarget(width, height)
+, m_gammaProgram("GammaCorrection")
 , m_postProcess(&m_renderTarget)
 , m_frame(0)
 , m_framesToSwitchVSync(0)
@@ -899,7 +848,7 @@ BackBuffer::BackBuffer(void* hMonitor, int width, int height, int bits, int refr
 	// Setup uniform samplers for gamma correction shader
 
 	m_gammaProgram.Load("GammaCorrection", "shaders/glsl/main.vp",
-		"shaders/glsl/gamma_correction.fp", NULL, "");
+		"shaders/glsl/main.fp", "shaders/glsl/func_normal.fp", "");
 
 	const GLuint program = m_gammaProgram.GetHandle();
 
@@ -1091,7 +1040,7 @@ void BackBuffer::DrawRenderTarget()
 
 	glViewport(rbOpts.shiftX, rbOpts.shiftY, rbOpts.width, rbOpts.height);
 
-	m_gammaProgram.Bind(0.0f);
+	m_gammaProgram.Bind();
 	colorTexture.Draw2D(Width, Height);
 	glUseProgram(0);
 
@@ -1194,5 +1143,3 @@ int SDL_SetGammaRamp(const uint16_t* red, const uint16_t* green, const uint16_t*
 #include "sdlglvideo.cpp"
 
 #undef OpenGLFrameBuffer
-
-#endif // 0
