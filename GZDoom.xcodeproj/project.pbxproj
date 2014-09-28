@@ -125,7 +125,6 @@
 		8A42210D150A0458001D28A0 /* libhid_utilities_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A422108150A0420001D28A0 /* libhid_utilities_gzdoom.a */; };
 		8A651FF6191E69EB009DB9CD /* glew.c in Sources */ = {isa = PBXBuildFile; fileRef = 8A651FF5191E69E3009DB9CD /* glew.c */; };
 		8A651FFB191E6A39009DB9CD /* libglew_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A651FED191E6988009DB9CD /* libglew_gzdoom.a */; };
-		8A651FFC191E6A3E009DB9CD /* libglew_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A651FED191E6988009DB9CD /* libglew_gzdoom.a */; };
 		8A6FBBDA19D6C0FE00485F82 /* gl_matrix.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A6FBBD819D6C0D800485F82 /* gl_matrix.cpp */; };
 		8A6FBBDD19D6C14000485F82 /* gl_load.c in Sources */ = {isa = PBXBuildFile; fileRef = 8A6FBBDB19D6C12300485F82 /* gl_load.c */; };
 		8A6FBBE019D6C16A00485F82 /* gl_samplers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A6FBBDE19D6C15C00485F82 /* gl_samplers.cpp */; };
@@ -3582,7 +3581,6 @@
 				8A9F547D14BB0F2900F3369B /* libgme_gzdoom.a in Frameworks */,
 				8A9F547E14BB0F2900F3369B /* libdumb_gzdoom.a in Frameworks */,
 				8A9F547F14BB0F2900F3369B /* libgdtoa_gzdoom.a in Frameworks */,
-				8A651FFC191E6A3E009DB9CD /* libglew_gzdoom.a in Frameworks */,
 				8A42210D150A0458001D28A0 /* libhid_utilities_gzdoom.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
