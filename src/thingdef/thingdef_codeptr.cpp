@@ -1767,6 +1767,7 @@ enum SIX_Flags
 	SIXF_TRANSFERRENDERSTYLE	= 1 << 19,
 	SIXF_SETTARGET				= 1 << 20,
 	SIXF_SETTRACER				= 1 << 21,
+	SIXF_NOPOINTERS				= 1 << 22,
 };
 
 static bool InitSpawnedItem(AActor *self, AActor *mo, int flags)
@@ -1823,7 +1824,7 @@ static bool InitSpawnedItem(AActor *self, AActor *mo, int flags)
 			mo->Destroy();
 			return false;
 		}
-		else if (originator)
+		else if (originator && !(flags & SIXF_NOPOINTERS))
 		{
 			if (originator->flags3 & MF3_ISMONSTER)
 			{
@@ -1853,6 +1854,14 @@ static bool InitSpawnedItem(AActor *self, AActor *mo, int flags)
 	{
 		// If this is a missile or something else set the target to the originator
 		mo->target = originator ? originator : self;
+	}
+	if (flags & SIXF_NOPOINTERS)
+	{
+		//[MC]Intentionally eliminate pointers. Overrides TRANSFERPOINTERS, but is overridden by SETMASTER/TARGET/TRACER.
+		mo->LastHeard = NULL; //Sanity check.
+		mo->target = NULL;
+		mo->master = NULL;
+		mo->tracer = NULL;
 	}
 	if (flags & SIXF_SETMASTER)
 	{
@@ -3662,65 +3671,6 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckFlag)
 	}
 }
 
-
-//===========================================================================
-//
-// A_RemoveMaster
-//
-//===========================================================================
-DEFINE_ACTION_FUNCTION(AActor, A_RemoveMaster)
-{
-	if (self->master != NULL)
-	{
-		P_RemoveThing(self->master);
-	}
-}
-
-//===========================================================================
-//
-// A_RemoveChildren
-//
-//===========================================================================
-DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveChildren)
-{
-	TThinkerIterator<AActor> it;
-	AActor *mo;
-	ACTION_PARAM_START(1);
-	ACTION_PARAM_BOOL(removeall,0);
-
-	while ((mo = it.Next()) != NULL)
-	{
-		if (mo->master == self && (mo->health <= 0 || removeall))
-		{
-			P_RemoveThing(mo);
-		}
-	}
-}
-
-//===========================================================================
-//
-// A_RemoveSiblings
-//
-//===========================================================================
-DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveSiblings)
-{
-	TThinkerIterator<AActor> it;
-	AActor *mo;
-	ACTION_PARAM_START(1);
-	ACTION_PARAM_BOOL(removeall,0);
-
-	if (self->master != NULL)
-	{
-		while ((mo = it.Next()) != NULL)
-		{
-			if (mo->master == self->master && mo != self && (mo->health <= 0 || removeall))
-			{
-				P_RemoveThing(mo);
-			}
-		}
-	}
-}
-
 //===========================================================================
 //
 // A_RaiseMaster
@@ -4378,7 +4328,8 @@ enum WARPF
 
 	WARPF_STOP = 0x80,
 	WARPF_TOFLOOR = 0x100,
-	WARPF_TESTONLY = 0x200
+	WARPF_TESTONLY = 0x200,
+	WARPF_ABSOLUTEPOSITION = 0x400,
 };
 
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Warp)
@@ -4411,59 +4362,72 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Warp)
 	{
 		angle += (flags & WARPF_USECALLERANGLE) ? self->angle : reference->angle;
 	}
-
-	if (!(flags & WARPF_ABSOLUTEOFFSET))
+	if (!(flags & WARPF_ABSOLUTEPOSITION))
 	{
-		angle_t fineangle = angle>>ANGLETOFINESHIFT;
-		oldx = xofs;
-
-		// (borrowed from A_SpawnItemEx, assumed workable)
-		// in relative mode negative y values mean 'left' and positive ones mean 'right'
-		// This is the inverse orientation of the absolute mode!
-
-		xofs = FixedMul(oldx, finecosine[fineangle]) + FixedMul(yofs, finesine[fineangle]);
-		yofs = FixedMul(oldx, finesine[fineangle]) - FixedMul(yofs, finecosine[fineangle]);
-	}
-
-	oldx = self->x;
-	oldy = self->y;
-	oldz = self->z;
-
-	if (flags & WARPF_TOFLOOR)
-	{
-		// set correct xy
-
-		self->SetOrigin(
-			reference->x + xofs,
-			reference->y + yofs,
-			reference->z);
-
-		// now the caller's floorz should be appropriate for the assigned xy-position
-		// assigning position again with
-		
-		if (zofs)
+		if (!(flags & WARPF_ABSOLUTEOFFSET))
 		{
-			// extra unlink, link and environment calculation
+			angle_t fineangle = angle >> ANGLETOFINESHIFT;
+			oldx = xofs;
+
+			// (borrowed from A_SpawnItemEx, assumed workable)
+			// in relative mode negative y values mean 'left' and positive ones mean 'right'
+			// This is the inverse orientation of the absolute mode!
+
+			xofs = FixedMul(oldx, finecosine[fineangle]) + FixedMul(yofs, finesine[fineangle]);
+			yofs = FixedMul(oldx, finesine[fineangle]) - FixedMul(yofs, finecosine[fineangle]);
+		}
+
+		oldx = self->x;
+		oldy = self->y;
+		oldz = self->z;
+
+		if (flags & WARPF_TOFLOOR)
+		{
+			// set correct xy
+
 			self->SetOrigin(
-				self->x,
-				self->y,
-				self->floorz + zofs);
+				reference->x + xofs,
+				reference->y + yofs,
+				reference->z);
+
+			// now the caller's floorz should be appropriate for the assigned xy-position
+			// assigning position again with
+
+			if (zofs)
+			{
+				// extra unlink, link and environment calculation
+				self->SetOrigin(
+					self->x,
+					self->y,
+					self->floorz + zofs);
+			}
+			else
+			{
+				// if there is no offset, there should be no ill effect from moving down to the
+				// already identified floor
+
+				// A_Teleport does the same thing anyway
+				self->z = self->floorz;
+			}
 		}
 		else
 		{
-			// if there is no offset, there should be no ill effect from moving down to the
-			// already identified floor
-
-			// A_Teleport does the same thing anyway
-			self->z = self->floorz;
+			self->SetOrigin(
+				reference->x + xofs,
+				reference->y + yofs,
+				reference->z + zofs);
 		}
 	}
-	else
+	else //[MC] The idea behind "absolute" is meant to be "absolute". Override everything, just like A_SpawnItemEx's.
 	{
-		self->SetOrigin(
-			reference->x + xofs,
-			reference->y + yofs,
-			reference->z + zofs);
+		if (flags & WARPF_TOFLOOR)
+		{
+			self->SetOrigin(xofs, yofs, self->floorz + zofs);
+		}
+		else
+		{
+			self->SetOrigin(xofs, yofs, zofs);
+		}
 	}
 	
 	if ((flags & WARPF_NOCHECKPOSITION) || P_TestMobjLocation(self))
@@ -4866,6 +4830,7 @@ enum DMSS
 	DMSS_FOILINVUL			= 1,
 	DMSS_AFFECTARMOR		= 2,
 	DMSS_KILL				= 4,
+	DMSS_NOFACTOR			= 8,
 };
 
 static void DoDamage(AActor *dmgtarget, AActor *self, int amount, FName DamageType, int flags)
@@ -4880,12 +4845,26 @@ static void DoDamage(AActor *dmgtarget, AActor *self, int amount, FName DamageTy
 			}
 			if (flags & DMSS_AFFECTARMOR)
 			{
-				P_DamageMobj(dmgtarget, self, self, amount, DamageType, DMG_FOILINVUL);
+				if (flags & DMSS_NOFACTOR)
+				{
+					P_DamageMobj(dmgtarget, self, self, amount, DamageType, DMG_FOILINVUL | DMG_NO_FACTOR);
+				}
+				else
+				{
+					P_DamageMobj(dmgtarget, self, self, amount, DamageType, DMG_FOILINVUL);
+				}
 			}
 			else
 			{
+				if (flags & DMSS_NOFACTOR)
+				{
+					P_DamageMobj(dmgtarget, self, self, amount, DamageType, DMG_FOILINVUL | DMG_NO_ARMOR | DMG_NO_FACTOR);
+				}
 				//[MC] DMG_FOILINVUL is needed for making the damage occur on the actor.
-				P_DamageMobj(dmgtarget, self, self, amount, DamageType, DMG_FOILINVUL | DMG_NO_ARMOR);
+				else
+				{
+					P_DamageMobj(dmgtarget, self, self, amount, DamageType, DMG_FOILINVUL | DMG_NO_ARMOR);
+				}
 			}
 		}
 	}
@@ -5040,7 +5019,6 @@ static void DoKill(AActor *killtarget, AActor *self, FName damagetype, int flags
 }
 
 
-
 //===========================================================================
 //
 // A_KillTarget(damagetype, int flags)
@@ -5126,17 +5104,52 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_KillSiblings)
 	}
 }
 
+//===========================================================================
+//
+// DoRemove
+//
+//===========================================================================
+
+enum RMVF_flags
+{
+	RMVF_MISSILES = 1 << 0,
+	RMVF_NOMONSTERS = 1 << 1,
+	RMVF_MISC = 1 << 2,
+	RMVF_EVERYTHING = 1 << 3,
+};
+
+static void DoRemove(AActor *removetarget, int flags)
+{
+	if ((flags & RMVF_EVERYTHING))
+	{
+		P_RemoveThing(removetarget);
+	}
+	if ((flags & RMVF_MISC) && !((removetarget->flags3 & MF3_ISMONSTER) && (removetarget->flags & MF_MISSILE)))
+	{
+		P_RemoveThing(removetarget);
+	}
+	if ((removetarget->flags3 & MF3_ISMONSTER) && !(flags & RMVF_NOMONSTERS))
+	{
+		P_RemoveThing(removetarget);
+	}
+	if ((removetarget->flags & MF_MISSILE) && (flags & RMVF_MISSILES))
+	{
+		P_RemoveThing(removetarget);
+	}
+}
 
 //===========================================================================
 //
 // A_RemoveTarget
 //
 //===========================================================================
-DEFINE_ACTION_FUNCTION(AActor, A_RemoveTarget)
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveTarget)
 {
-	if (self->target != NULL)
+	ACTION_PARAM_START(1);
+	ACTION_PARAM_INT(flags, 0);
+	if (self->master != NULL)
 	{
-		P_RemoveThing(self->target);
+		DoRemove(self->target, flags);
 	}
 }
 
@@ -5145,10 +5158,94 @@ DEFINE_ACTION_FUNCTION(AActor, A_RemoveTarget)
 // A_RemoveTracer
 //
 //===========================================================================
-DEFINE_ACTION_FUNCTION(AActor, A_RemoveTracer)
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveTracer)
 {
-	if (self->tracer != NULL)
+	ACTION_PARAM_START(1);
+	ACTION_PARAM_INT(flags, 0);
+	if (self->master != NULL)
 	{
-		P_RemoveThing(self->tracer);
+		DoRemove(self->tracer, flags);
 	}
 }
+
+//===========================================================================
+//
+// A_RemoveMaster
+//
+//===========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveMaster)
+{
+	ACTION_PARAM_START(1);
+	ACTION_PARAM_INT(flags, 0);
+	if (self->master != NULL)
+	{
+		DoRemove(self->master, flags);
+	}
+}
+
+//===========================================================================
+//
+// A_RemoveChildren
+//
+//===========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveChildren)
+{
+	TThinkerIterator<AActor> it;
+	AActor *mo;
+	ACTION_PARAM_START(2);
+	ACTION_PARAM_BOOL(removeall, 0);
+	ACTION_PARAM_INT(flags, 1);
+
+	while ((mo = it.Next()) != NULL)
+	{
+		if (mo->master == self && (mo->health <= 0 || removeall))
+		{
+			DoRemove(mo, flags);
+		}
+	}
+}
+
+//===========================================================================
+//
+// A_RemoveSiblings
+//
+//===========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RemoveSiblings)
+{
+	TThinkerIterator<AActor> it;
+	AActor *mo;
+	ACTION_PARAM_START(2);
+	ACTION_PARAM_BOOL(removeall, 0);
+	ACTION_PARAM_INT(flags, 1);
+
+	if (self->master != NULL)
+	{
+		while ((mo = it.Next()) != NULL)
+		{
+			if (mo->master == self->master && mo != self && (mo->health <= 0 || removeall))
+			{
+				DoRemove(mo, flags);
+			}
+		}
+	}
+}
+
+//===========================================================================
+//
+// A_Remove
+//
+//===========================================================================
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_Remove)
+{
+	ACTION_PARAM_START(2);
+	ACTION_PARAM_INT(removee, 0);
+	ACTION_PARAM_INT(flags, 1);
+
+	AActor *reference = COPY_AAPTR(self, removee);
+
+	if (reference != NULL)
+	{
+		DoRemove(reference, flags);
+	}
+}
+
