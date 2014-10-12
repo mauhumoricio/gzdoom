@@ -483,7 +483,7 @@ void gl_InitModels()
 						smf.sprite = -1;
 						for (i = 0; i < (int)sprites.Size (); ++i)
 						{
-							if (strncmp (sprites[i].name, sc.String, 4) == 0)
+							if (strnicmp (sprites[i].name, sc.String, 4) == 0)
 							{
 								if (sprites[i].numframes==0)
 								{
@@ -691,7 +691,6 @@ void gl_RenderModel(GLSprite * spr, int cm)
 
 	// Setup transformation.
 	glDepthFunc(GL_LEQUAL);
-	gl_RenderState.SetTextureMode(TM_MODULATE);
 	gl_RenderState.EnableTexture(true);
 	// [BB] In case the model should be rendered translucent, do back face culling.
 	// This solves a few of the problems caused by the lack of depth sorting.

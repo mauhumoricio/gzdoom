@@ -346,18 +346,6 @@ IWad
 
 IWad
 {
-	Name = "DOOM 2 (Xbox)"
-	Autoname = "Doom2"
-	Game = "Doom"
-	Config = "Doom"
-	Mapinfo = "mapinfo/doom2_xbox.txt"
-	Compatibility = "Shorttex"
-	MustContain = "MAP01", "MAP33", "CWILV32"
-	BannerColors = "a8 00 00", "a8 a8 a8"
-}
-
-IWad
-{
 	Name = "DOOM II (XBLA/Xbox 360)"
 	Autoname = "Doom2"
 	Game = "Doom"
@@ -380,6 +368,18 @@ IWad
 	BannerColors = "a8 00 00", "a8 a8 a8"
 	Load = "masterlevels.wad"
 	Load = "nerve.wad"
+}
+
+IWad
+{
+	Name = "DOOM 2 (Xbox)"
+	Autoname = "Doom2"
+	Game = "Doom"
+	Config = "Doom"
+	Mapinfo = "mapinfo/doom2_xbox.txt"
+	Compatibility = "Shorttex"
+	MustContain = "MAP01", "MAP33", "CWILV32"
+	BannerColors = "a8 00 00", "a8 a8 a8"
 }
 
 // Doom 2 must be last to be checked becaude MAP01 is its only requirement
@@ -434,13 +434,13 @@ Names
 	"harm1.wad"
 	"hacx.wad"
 	"hacx2.wad"
+	"square1.pk3"
 	"doomxbox.wad"
 	"doom2xbox.wad"
 	"doom.disk"
 	"doom2.disk"
-	"doom_x360.disk"
-	"doom2_x360.disk"
-	"doom_xbla.disk"
-	"doom2_xbla.disk"
-	"square1.pk3"
+	"doomx360.disk"
+	"doom2x360.disk"
+	"doomxbla.disk"
+	"doom2xbla.disk"
 }

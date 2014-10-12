@@ -2306,6 +2306,12 @@ void FBehavior::LoadScriptsDirectory ()
 	default:
 		break;
 	}
+
+// [EP] Clang 3.5.0 optimizer miscompiles this function and causes random
+// crashes in the program. I hope that Clang 3.5.x will fix this.
+#if defined(__clang__) && __clang_major__ == 3 && __clang_minor__ >= 5
+	asm("" : "+g" (NumScripts));
+#endif
 	for (i = 0; i < NumScripts; ++i)
 	{
 		Scripts[i].Flags = 0;
@@ -3837,6 +3843,10 @@ void DLevelScript::DoSetActorProperty (AActor *actor, int property, int value)
 		actor->reactiontime = value;
 		break;
 
+	case APROP_MeleeRange:
+		actor->meleerange = value;
+		break;
+
 	case APROP_ViewHeight:
 		if (actor->IsKindOf (RUNTIME_CLASS (APlayerPawn)))
 			static_cast<APlayerPawn *>(actor)->ViewHeight = value;
@@ -4361,6 +4371,10 @@ enum EACSFunctions
 	ACSF_ChangeActorAngle,
 	ACSF_ChangeActorPitch,		// 80
 	ACSF_GetArmorInfo,
+	ACSF_DropInventory,
+	ACSF_PickActor,
+	ACSF_IsPointerEqual,
+	ACSF_CanRaiseActor,
 
 	/* Zandronum's - these must be skipped when we reach 99!
 	-100:ResetMap(0),
@@ -5485,6 +5499,42 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 			break;
 		}
 
+		case ACSF_DropInventory:
+		{
+			const char *type = FBehavior::StaticLookupString(args[1]);
+			AInventory *inv;
+			
+			if (type != NULL)
+			{
+				if (args[0] == 0)
+				{
+					if (activator != NULL)
+					{
+						inv = activator->FindInventory(type);
+						if (inv)
+						{
+							activator->DropInventory(inv);
+						}
+					}
+				}
+				else
+				{
+					FActorIterator it(args[0]);
+					AActor *actor;
+					
+					while ((actor = it.Next()) != NULL)
+					{
+						inv = actor->FindInventory(type);
+						if (inv)
+						{
+							actor->DropInventory(inv);
+						}
+					}
+				}
+			}
+		break;
+		}
+
 		case ACSF_CheckFlag:
 		{
 			AActor *actor = SingleActorFromTID(args[0], activator);
@@ -5547,6 +5597,74 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 			if (argCount >= 2)
 			{
 				SetActorPitch(activator, args[0], args[1], argCount > 2 ? !!args[2] : false);
+			}
+			break;
+
+		case ACSF_PickActor:
+			if (argCount >= 5)
+			{
+				actor = SingleActorFromTID(args[0], activator);
+				if (actor == NULL)
+				{
+					return 0;
+				}
+
+				DWORD actorMask = MF_SHOOTABLE;
+				if (argCount >= 6) {
+					actorMask = args[5];
+				}
+
+				DWORD wallMask = ML_BLOCKEVERYTHING | ML_BLOCKHITSCAN;
+				if (argCount >= 7) {
+					wallMask = args[6];
+				}
+
+				AActor* pickedActor = P_LinePickActor(actor, args[1] << 16, args[3], args[2] << 16, actorMask, wallMask);
+				if (pickedActor == NULL) {
+					return 0;
+				}
+
+				pickedActor->RemoveFromHash();
+				pickedActor->tid = args[4];
+				pickedActor->AddToHash();
+				
+				return 1;
+			}
+			break;
+
+		case ACSF_IsPointerEqual:
+			{
+				int tid1 = 0, tid2 = 0;
+				switch (argCount)
+				{
+				case 4: tid2 = args[3];
+				case 3: tid1 = args[2];
+				}
+
+				actor = SingleActorFromTID(tid1, activator);
+				AActor * actor2 = tid2 == tid1 ? actor : SingleActorFromTID(tid2, activator);
+
+				return COPY_AAPTR(actor, args[0]) == COPY_AAPTR(actor2, args[1]);
+			}
+			break;
+
+		case ACSF_CanRaiseActor:
+			if (argCount >= 1) {
+				if (args[0] == 0) {
+					actor = SingleActorFromTID(args[0], activator);
+					if (actor != NULL) {
+						return P_Thing_CanRaise(actor);
+					}
+				}
+
+				FActorIterator iterator(args[0]);
+				bool canraiseall = false;
+				while ((actor = iterator.Next()))
+				{
+					canraiseall = !P_Thing_CanRaise(actor) | canraiseall;
+				}
+				
+				return !canraiseall;
 			}
 			break;
 
