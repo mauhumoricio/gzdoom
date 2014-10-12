@@ -10,13 +10,7 @@ if [ "$1" != "Cocoa" ] && [ "$1" != "SDL" ]; then
 	exit 1
 fi
 
-TEMP_STORAGE_DIR=/Volumes/ramdisk/
-
-if [ -e "${TEMP_STORAGE_DIR}" ]; then
-	DEPLOY_IMAGE_DIR=${TEMP_STORAGE_DIR}
-fi
-
-DEPLOY_IMAGE_DIR=${DEPLOY_IMAGE_DIR}.deploy_image
+DEPLOY_IMAGE_DIR=.deploy_image
 DEPLOY_CONTENT_DIR=${DEPLOY_IMAGE_DIR}/.content
 DEPLOY_CONTENT_EXTRAS_DIR=${DEPLOY_CONTENT_DIR}/Extras
 
