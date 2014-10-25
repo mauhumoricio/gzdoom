@@ -1396,6 +1396,42 @@ void APowerFrightener::EndEffect ()
 	Owner->player->cheats &= ~CF_FRIGHTENING;
 }
 
+// Buddha Powerup --------------------------------
+
+IMPLEMENT_CLASS (APowerBuddha)
+
+//===========================================================================
+//
+// APowerBuddha :: InitEffect
+//
+//===========================================================================
+
+void APowerBuddha::InitEffect ()
+{
+	Super::InitEffect();
+
+	if (Owner== NULL || Owner->player == NULL)
+		return;
+
+	Owner->player->cheats |= CF_BUDDHA;
+}
+
+//===========================================================================
+//
+// APowerBuddha :: EndEffect
+//
+//===========================================================================
+
+void APowerBuddha::EndEffect ()
+{
+	Super::EndEffect();
+
+	if (Owner== NULL || Owner->player == NULL)
+		return;
+
+	Owner->player->cheats &= ~CF_BUDDHA;
+}
+
 // Scanner powerup ----------------------------------------------------------
 
 IMPLEMENT_CLASS (APowerScanner)
