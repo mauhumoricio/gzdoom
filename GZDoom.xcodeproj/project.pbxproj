@@ -1397,6 +1397,8 @@
 		8A3DA66C1547DB5100D1302A /* thingdef_function.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = thingdef_function.cpp; sourceTree = "<group>"; };
 		8A3DA6941547DC2A00D1302A /* gl_builddraw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = gl_builddraw.cpp; sourceTree = "<group>"; };
 		8A3FB89D18B10ED6007AAE66 /* gdtoa_fltrnds.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gdtoa_fltrnds.h; sourceTree = "<group>"; };
+		8A41EE9719FB9A900072E317 /* GWANA0.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = GWANA0.png; sourceTree = "<group>"; };
+		8A41EE9D19FB9B220072E317 /* ultdoom_xbox.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = ultdoom_xbox.txt; sourceTree = "<group>"; };
 		8A422108150A0420001D28A0 /* libhid_utilities_gzdoom.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libhid_utilities_gzdoom.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A44602813BF0306007FA8E1 /* gzdoom.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = gzdoom.xcconfig; path = misc/gzdoom.xcconfig; sourceTree = "<group>"; };
 		8A651FED191E6988009DB9CD /* libglew_gzdoom.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libglew_gzdoom.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -4226,6 +4228,7 @@
 				8A80DD2717ABB57000917483 /* tnt.txt */,
 				8A80DD2817ABB57000917483 /* ultdoom.txt */,
 				8A80DD2917ABB57000917483 /* ultdoom_x360.txt */,
+				8A41EE9D19FB9B220072E317 /* ultdoom_xbox.txt */,
 				8A80DD2A17ABB57000917483 /* urbanbrawl.txt */,
 			);
 			path = mapinfo;
@@ -4315,6 +4318,7 @@
 				8A80DDA217ABB57000917483 /* dogs */,
 				8A80DDEE17ABB57000917483 /* plyc */,
 				8A80DDA117ABB57000917483 /* amrka0.png */,
+				8A41EE9719FB9A900072E317 /* GWANA0.png */,
 				8A80DDDD17ABB57000917483 /* iceca0.png */,
 				8A80DDDE17ABB57000917483 /* icecb0.png */,
 				8A80DDDF17ABB57000917483 /* icecc0.png */,
