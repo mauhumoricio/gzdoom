@@ -41,7 +41,9 @@
 
 #include <AppKit/AppKit.h>
 #include <Carbon/Carbon.h>
+#include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
 
 #include <SDL.h>
 
@@ -1200,7 +1202,7 @@ static ApplicationController* appCtrl;
 	const NSSize viewSize = GetRealContentViewSize(m_window);
 	
 	glViewport(0, 0, viewSize.width, viewSize.height);
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	CGLFlushDrawable(CGLGetCurrentContext());
@@ -1233,16 +1235,16 @@ static ApplicationController* appCtrl;
 {
 	if (0 == m_softwareRenderingTexture)
 	{
-		glEnable(GL_TEXTURE_2D);
+		glEnable(GL_TEXTURE_RECTANGLE_ARB);
 
 		glGenTextures(1, &m_softwareRenderingTexture);
-		glBindTexture(GL_TEXTURE_2D, m_softwareRenderingTexture);
+		glBindTexture(GL_TEXTURE_RECTANGLE_ARB, m_softwareRenderingTexture);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	}
 
 	delete[] m_softwareRenderingBuffer;
@@ -1768,19 +1770,25 @@ int SDL_Flip(SDL_Surface* screen)
 	
 	const int width  = screen->w;
 	const int height = screen->h;
-	
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
-		width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, screen->pixels);
+
+#ifdef __LITTLE_ENDIAN__
+	static const GLenum format = GL_RGBA;
+#else // __BIG_ENDIAN__
+	static const GLenum format = GL_ABGR_EXT;
+#endif // __LITTLE_ENDIAN__
+
+	glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA8,
+		width, height, 0, format, GL_UNSIGNED_BYTE, screen->pixels);
 
 	glBegin(GL_QUADS);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glTexCoord2f(0.0f, 0.0f);
 	glVertex2f(0.0f, 0.0f);
-	glTexCoord2f(1.0f, 0.0f);
+	glTexCoord2f(width, 0.0f);
 	glVertex2f(width, 0.0f);
-	glTexCoord2f(1.0f, 1.0f);
+	glTexCoord2f(width, height);
 	glVertex2f(width, height);
-	glTexCoord2f(0.0f, 1.0f);
+	glTexCoord2f(0.0f, height);
 	glVertex2f(0.0f, height);
 	glEnd();
 
