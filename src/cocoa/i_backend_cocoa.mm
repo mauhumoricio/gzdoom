@@ -45,6 +45,80 @@
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED < 1050
+
+// Missing definitions for 10.4 and earlier
+
+typedef unsigned int NSUInteger;
+typedef          int NSInteger;
+
+typedef float CGFloat;
+
+// From HIToolbox/Events.h
+enum 
+{
+	kVK_Return                    = 0x24,
+	kVK_Tab                       = 0x30,
+	kVK_Space                     = 0x31,
+	kVK_Delete                    = 0x33,
+	kVK_Escape                    = 0x35,
+	kVK_Command                   = 0x37,
+	kVK_Shift                     = 0x38,
+	kVK_CapsLock                  = 0x39,
+	kVK_Option                    = 0x3A,
+	kVK_Control                   = 0x3B,
+	kVK_RightShift                = 0x3C,
+	kVK_RightOption               = 0x3D,
+	kVK_RightControl              = 0x3E,
+	kVK_Function                  = 0x3F,
+	kVK_F17                       = 0x40,
+	kVK_VolumeUp                  = 0x48,
+	kVK_VolumeDown                = 0x49,
+	kVK_Mute                      = 0x4A,
+	kVK_F18                       = 0x4F,
+	kVK_F19                       = 0x50,
+	kVK_F20                       = 0x5A,
+	kVK_F5                        = 0x60,
+	kVK_F6                        = 0x61,
+	kVK_F7                        = 0x62,
+	kVK_F3                        = 0x63,
+	kVK_F8                        = 0x64,
+	kVK_F9                        = 0x65,
+	kVK_F11                       = 0x67,
+	kVK_F13                       = 0x69,
+	kVK_F16                       = 0x6A,
+	kVK_F14                       = 0x6B,
+	kVK_F10                       = 0x6D,
+	kVK_F12                       = 0x6F,
+	kVK_F15                       = 0x71,
+	kVK_Help                      = 0x72,
+	kVK_Home                      = 0x73,
+	kVK_PageUp                    = 0x74,
+	kVK_ForwardDelete             = 0x75,
+	kVK_F4                        = 0x76,
+	kVK_End                       = 0x77,
+	kVK_F2                        = 0x78,
+	kVK_PageDown                  = 0x79,
+	kVK_F1                        = 0x7A,
+	kVK_LeftArrow                 = 0x7B,
+	kVK_RightArrow                = 0x7C,
+	kVK_DownArrow                 = 0x7D,
+	kVK_UpArrow                   = 0x7E
+};
+
+@interface NSView(SupportOutdatedOSX)
+- (NSPoint)convertPointFromBase:(NSPoint)aPoint;
+@end
+
+@implementation NSView(SupportOutdatedOSX)
+- (NSPoint)convertPointFromBase:(NSPoint)aPoint
+{
+    return [self convertPoint:aPoint fromView:nil];
+}
+@end
+
+#endif // prior to 10.5
+
 #include <SDL.h>
 
 // Avoid collision between DObject class and Objective-C
@@ -274,7 +348,7 @@ void I_ProcessJoysticks();
 
 void I_GetEvent()
 {
-	[[NSRunLoop mainRunLoop] limitDateForMode:NSDefaultRunLoopMode];
+	[[NSRunLoop currentRunLoop] limitDateForMode:NSDefaultRunLoopMode];
 }
 
 void I_StartTic()
@@ -636,6 +710,7 @@ void ProcessMouseButtonEvent(NSEvent* theEvent)
 			case NSLeftMouseUp:    event.subtype = EV_GUI_LButtonUp;   break;
 			case NSRightMouseUp:   event.subtype = EV_GUI_RButtonUp;   break;
 			case NSOtherMouseUp:   event.subtype = EV_GUI_MButtonUp;   break;
+			default: break;
 		}
 		
 		NSEventToGameMousePosition(theEvent, &event);
@@ -656,6 +731,9 @@ void ProcessMouseButtonEvent(NSEvent* theEvent)
 			case NSRightMouseUp:
 			case NSOtherMouseUp:
 				event.type = EV_KeyUp;
+				break;
+				
+			default:
 				break;
 		}
 		
@@ -801,6 +879,19 @@ const Uint16 BYTES_PER_PIXEL = 4;
 // ---------------------------------------------------------------------------
 
 
+namespace
+{
+	const NSInteger LEVEL_FULLSCREEN = NSMainMenuWindowLevel + 1;
+	const NSInteger LEVEL_WINDOWED   = NSNormalWindowLevel;
+
+	const NSUInteger STYLE_MASK_FULLSCREEN = NSBorderlessWindowMask;
+	const NSUInteger STYLE_MASK_WINDOWED   = NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask;
+}
+
+
+// ---------------------------------------------------------------------------
+
+
 @interface FullscreenWindow : NSWindow
 {
 
@@ -808,27 +899,8 @@ const Uint16 BYTES_PER_PIXEL = 4;
 
 - (bool)canBecomeKeyWindow;
 
-- (void)close;
-
-@end
-
-
-@implementation FullscreenWindow
-
-- (bool)canBecomeKeyWindow
-{
-	return true;
-}
-
-
-- (void)close
-{
-	[super close];
-	
-	I_ShutdownJoysticks();
-
-	[NSApp terminate:self];
-}
+- (void)setLevel:(NSInteger)level;
+- (void)setStyleMask:(NSUInteger)styleMask;
 
 @end
 
@@ -912,10 +984,49 @@ const Uint16 BYTES_PER_PIXEL = 4;
 
 - (void)setMainWindowVisible:(bool)visible;
 
+- (void)setWindowStyleMask:(NSUInteger)styleMask;
+
 @end
 
 
 static ApplicationController* appCtrl;
+
+
+// ---------------------------------------------------------------------------
+
+
+@implementation FullscreenWindow
+
+- (bool)canBecomeKeyWindow
+{
+	return true;
+}
+
+- (void)setLevel:(NSInteger)level
+{
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
+	[super setLevel:level];
+#else // 10.5 or earlier
+	// Old Carbon-based way to make fullscreen window above dock and menu
+	// It's supported on 64-bit, but on 10.6 and later the following is preferred:
+	// [NSWindow setLevel:NSMainMenuWindowLevel + 1]
+
+	const SystemUIMode mode = LEVEL_FULLSCREEN == level
+		? kUIModeAllHidden
+		: kUIModeNormal;
+	SetSystemUIMode(mode, 0);
+#endif // 10.6 or higher
+}
+
+- (void)setStyleMask:(NSUInteger)styleMask
+{
+	[appCtrl setWindowStyleMask:styleMask];
+}
+
+@end
+
+
+// ---------------------------------------------------------------------------
 
 
 @implementation ApplicationController
@@ -998,8 +1109,8 @@ static ApplicationController* appCtrl;
 										   selector:@selector(processEvents:)
 										   userInfo:nil
 											repeats:YES];
-	[[NSRunLoop mainRunLoop] addTimer:timer
-							  forMode:NSDefaultRunLoopMode];
+	[[NSRunLoop currentRunLoop] addTimer:timer
+								 forMode:NSDefaultRunLoopMode];
 
 	exit(SDL_main(s_argc, s_argv));
 }
@@ -1060,6 +1171,23 @@ static ApplicationController* appCtrl;
 }
 
 
+- (FullscreenWindow*)createWindow:(NSUInteger)styleMask
+{
+	FullscreenWindow* window = [[FullscreenWindow alloc] initWithContentRect:NSMakeRect(0, 0, 640, 480)
+																   styleMask:styleMask
+																	 backing:NSBackingStoreBuffered
+																	   defer:NO];
+	[window setOpaque:YES];
+	[window makeFirstResponder:self];
+	[window setAcceptsMouseMovedEvents:YES];
+
+	NSButton* closeButton = [window standardWindowButton:NSWindowCloseButton];
+	[closeButton setAction:@selector(closeWindow:)];
+	[closeButton setTarget:self];
+
+	return window;
+}
+
 - (void)initializeOpenGL
 {
 	if (m_openGLInitialized)
@@ -1067,15 +1195,7 @@ static ApplicationController* appCtrl;
 		return;
 	}
 	
-	// Create window
-	
-	m_window = [[FullscreenWindow alloc] initWithContentRect:NSMakeRect(0, 0, 640, 480)
-												   styleMask:NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask
-													 backing:NSBackingStoreBuffered
-													   defer:NO];
-	[m_window setOpaque:YES];
-	[m_window makeFirstResponder:self];
-	[m_window setAcceptsMouseMovedEvents:YES];
+	m_window = [self createWindow:STYLE_MASK_WINDOWED];
 	
 	// Create OpenGL context and view
 	
@@ -1084,22 +1204,22 @@ static ApplicationController* appCtrl;
 	
 	attributes[i++] = NSOpenGLPFADoubleBuffer;
 	attributes[i++] = NSOpenGLPFAColorSize;
-	attributes[i++] = 32;
+	attributes[i++] = NSOpenGLPixelFormatAttribute(32);
 	attributes[i++] = NSOpenGLPFADepthSize;
-	attributes[i++] = 24;
+	attributes[i++] = NSOpenGLPixelFormatAttribute(24);
 	attributes[i++] = NSOpenGLPFAStencilSize;
-	attributes[i++] = 8;
+	attributes[i++] = NSOpenGLPixelFormatAttribute(8);
 	
 	if (m_multisample)
 	{
 		attributes[i++] = NSOpenGLPFAMultisample;
 		attributes[i++] = NSOpenGLPFASampleBuffers;
-		attributes[i++] = 1;
+		attributes[i++] = NSOpenGLPixelFormatAttribute(1);
 		attributes[i++] = NSOpenGLPFASamples;
-		attributes[i++] = m_multisample;
+		attributes[i++] = NSOpenGLPixelFormatAttribute(m_multisample);
 	}	
 	
-	attributes[i] = 0;
+	attributes[i] = NSOpenGLPixelFormatAttribute(0);
 	
 	NSOpenGLPixelFormat *pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attributes];
 	
@@ -1113,7 +1233,7 @@ static ApplicationController* appCtrl;
 	m_openGLInitialized = true;
 }
 
-- (void)switchToFullscreen
+- (void)setFullscreenModeWidth:(int)width height:(int)height
 {
 	NSScreen* screen = [m_window screen];
 
@@ -1125,42 +1245,50 @@ static ApplicationController* appCtrl;
 	const float  displayWidth  = displayRect.size.width;
 	const float  displayHeight = displayRect.size.height;
 	
-	const float pixelScaleFactorX = displayWidth  / static_cast<float>(m_width );
-	const float pixelScaleFactorY = displayHeight / static_cast<float>(m_height);
+	const float pixelScaleFactorX = displayWidth  / static_cast<float>(width );
+	const float pixelScaleFactorY = displayHeight / static_cast<float>(height);
 	
 	rbOpts.pixelScale = std::min(pixelScaleFactorX, pixelScaleFactorY);
 	
-	rbOpts.width  = m_width  * rbOpts.pixelScale;
-	rbOpts.height = m_height * rbOpts.pixelScale;
+	rbOpts.width  = width  * rbOpts.pixelScale;
+	rbOpts.height = height * rbOpts.pixelScale;
 	
 	rbOpts.shiftX = (displayWidth  - rbOpts.width ) / 2.0f;
 	rbOpts.shiftY = (displayHeight - rbOpts.height) / 2.0f;
 
-	[m_window setLevel:NSMainMenuWindowLevel + 1];
-	[m_window setStyleMask:NSBorderlessWindowMask];
-	[m_window setHidesOnDeactivate:YES];
+	if (!m_fullscreen)
+	{
+		[m_window setLevel:LEVEL_FULLSCREEN];
+		[m_window setStyleMask:STYLE_MASK_FULLSCREEN];
+		[m_window setHidesOnDeactivate:YES];
+	}
+
 	[m_window setFrame:displayRect display:YES];
 	[m_window setFrameOrigin:NSMakePoint(0.0f, 0.0f)];
 }
 
-- (void)switchToWindowed
+- (void)setWindowedModeWidth:(int)width height:(int)height
 {
 	rbOpts.pixelScale = 1.0f;
 	
-	rbOpts.width  = static_cast<float>(m_width );
-	rbOpts.height = static_cast<float>(m_height);
+	rbOpts.width  = static_cast<float>(width );
+	rbOpts.height = static_cast<float>(height);
 	
 	rbOpts.shiftX = 0.0f;
 	rbOpts.shiftY = 0.0f;
 
-	const NSSize windowPixelSize = NSMakeSize(m_width, m_height);
+	const NSSize windowPixelSize = NSMakeSize(width, height);
 	const NSSize windowSize = vid_hidpi
 		? [[m_window contentView] convertSizeFromBacking:windowPixelSize]
 		: windowPixelSize;
 
-	[m_window setLevel:NSNormalWindowLevel];
-	[m_window setStyleMask:NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask];
-	[m_window setHidesOnDeactivate:NO];
+	if (m_fullscreen)
+	{
+		[m_window setLevel:LEVEL_WINDOWED];
+		[m_window setStyleMask:STYLE_MASK_WINDOWED];
+		[m_window setHidesOnDeactivate:NO];
+	}
+
 	[m_window setContentSize:windowSize];
 	[m_window center];
 }
@@ -1175,33 +1303,28 @@ static ApplicationController* appCtrl;
 		return;
 	}
 
-	m_fullscreen = fullscreen;
-	m_width      = width;
-	m_height     = height;
-	m_hiDPI      = hiDPI;
-
 	[self initializeOpenGL];
 
 	if (IsHiDPISupported())
 	{
 		NSOpenGLView* const glView = [m_window contentView];
-		[glView setWantsBestResolutionOpenGLSurface:m_hiDPI];
+		[glView setWantsBestResolutionOpenGLSurface:hiDPI];
 	}
 
-	if (m_fullscreen)
+	if (fullscreen)
 	{
-		[self switchToFullscreen];
+		[self setFullscreenModeWidth:width height:height];
 	}
 	else
 	{
-		[self switchToWindowed];
+		[self setWindowedModeWidth:width height:height];
 	}
 
 	rbOpts.dirty = true;
 
 	const NSSize viewSize = GetRealContentViewSize(m_window);
 	
-	glViewport(0, 0, viewSize.width, viewSize.height);
+	glViewport(0, 0, static_cast<GLsizei>(viewSize.width), static_cast<GLsizei>(viewSize.height));
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -1214,7 +1337,12 @@ static ApplicationController* appCtrl;
 	if (![m_window isKeyWindow])
 	{
 		[m_window makeKeyAndOrderFront:nil];
-	}	
+	}
+
+	m_fullscreen = fullscreen;
+	m_width      = width;
+	m_height     = height;
+	m_hiDPI      = hiDPI;
 }
 
 - (void)useHiDPI:(bool)hiDPI
@@ -1314,6 +1442,9 @@ static ApplicationController* appCtrl;
 			case NSFlagsChanged:
 				ProcessKeyboardFlagsEvent(event);
 				break;
+				
+			default:
+				break;
 		}
 		
 		[NSApp sendEvent:event];
@@ -1339,6 +1470,31 @@ static ApplicationController* appCtrl;
 	{
 		[m_window orderOut:nil];
 	}
+}
+
+
+- (void)setWindowStyleMask:(NSUInteger)styleMask
+{
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
+	[m_window setStyleMask:styleMask];
+#else // 10.5 or earlier
+	// Before 10.6 it's impossible to change window's style mask
+	// To workaround this new window should be created with required style mask
+
+	FullscreenWindow* tempWindow = [self createWindow:styleMask];
+	[tempWindow setContentView:[m_window contentView]];
+
+	[m_window close];
+	m_window = tempWindow;
+#endif // 10.6 or higher
+}
+
+
+- (void)closeWindow:(id)sender
+{
+    I_ShutdownJoysticks();
+
+    [NSApp terminate:sender];
 }
 
 @end
@@ -1403,6 +1559,8 @@ bool I_SetCursor(FTexture* cursorpic)
 		// Load bitmap data to representation
 		
 		BYTE* buffer = [bitmapImageRep bitmapData];
+		memset(buffer, 0, imagePitch * imageHeight);
+
 		FBitmap bitmap(buffer, imagePitch, imageWidth, imageHeight);
 		cursorpic->CopyTrueColorPixels(&bitmap, 0, 0);
 		
