@@ -123,6 +123,7 @@
 		8A3DA66D1547DB5100D1302A /* thingdef_function.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A3DA66C1547DB5100D1302A /* thingdef_function.cpp */; };
 		8A3DA66E1547DB5100D1302A /* thingdef_function.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A3DA66C1547DB5100D1302A /* thingdef_function.cpp */; };
 		8A42210D150A0458001D28A0 /* libhid_utilities_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A422108150A0420001D28A0 /* libhid_utilities_gzdoom.a */; };
+		8A6227A21A18E0C4004235B1 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A74F4661392532C001F54B0 /* Carbon.framework */; };
 		8A651FF6191E69EB009DB9CD /* glew.c in Sources */ = {isa = PBXBuildFile; fileRef = 8A651FF5191E69E3009DB9CD /* glew.c */; };
 		8A651FFB191E6A39009DB9CD /* libglew_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A651FED191E6988009DB9CD /* libglew_gzdoom.a */; };
 		8A651FFC191E6A3E009DB9CD /* libglew_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A651FED191E6988009DB9CD /* libglew_gzdoom.a */; };
@@ -3563,6 +3564,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8A1D33A4154D6EA100BA2C16 /* AudioUnit.framework in Frameworks */,
+				8A6227A21A18E0C4004235B1 /* Carbon.framework in Frameworks */,
 				8A9F547414BB0F2900F3369B /* Cocoa.framework in Frameworks */,
 				8A1D33B3154D6EEF00BA2C16 /* CoreAudio.framework in Frameworks */,
 				8A1D33A8154D6EC000BA2C16 /* CoreMIDI.framework in Frameworks */,

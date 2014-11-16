@@ -45,6 +45,95 @@
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED < 1050
+
+// Missing definitions for 10.4 and earlier
+
+typedef unsigned int NSUInteger;
+typedef          int NSInteger;
+
+typedef float CGFloat;
+
+// From HIToolbox/Events.h
+enum 
+{
+	kVK_Return                    = 0x24,
+	kVK_Tab                       = 0x30,
+	kVK_Space                     = 0x31,
+	kVK_Delete                    = 0x33,
+	kVK_Escape                    = 0x35,
+	kVK_Command                   = 0x37,
+	kVK_Shift                     = 0x38,
+	kVK_CapsLock                  = 0x39,
+	kVK_Option                    = 0x3A,
+	kVK_Control                   = 0x3B,
+	kVK_RightShift                = 0x3C,
+	kVK_RightOption               = 0x3D,
+	kVK_RightControl              = 0x3E,
+	kVK_Function                  = 0x3F,
+	kVK_F17                       = 0x40,
+	kVK_VolumeUp                  = 0x48,
+	kVK_VolumeDown                = 0x49,
+	kVK_Mute                      = 0x4A,
+	kVK_F18                       = 0x4F,
+	kVK_F19                       = 0x50,
+	kVK_F20                       = 0x5A,
+	kVK_F5                        = 0x60,
+	kVK_F6                        = 0x61,
+	kVK_F7                        = 0x62,
+	kVK_F3                        = 0x63,
+	kVK_F8                        = 0x64,
+	kVK_F9                        = 0x65,
+	kVK_F11                       = 0x67,
+	kVK_F13                       = 0x69,
+	kVK_F16                       = 0x6A,
+	kVK_F14                       = 0x6B,
+	kVK_F10                       = 0x6D,
+	kVK_F12                       = 0x6F,
+	kVK_F15                       = 0x71,
+	kVK_Help                      = 0x72,
+	kVK_Home                      = 0x73,
+	kVK_PageUp                    = 0x74,
+	kVK_ForwardDelete             = 0x75,
+	kVK_F4                        = 0x76,
+	kVK_End                       = 0x77,
+	kVK_F2                        = 0x78,
+	kVK_PageDown                  = 0x79,
+	kVK_F1                        = 0x7A,
+	kVK_LeftArrow                 = 0x7B,
+	kVK_RightArrow                = 0x7C,
+	kVK_DownArrow                 = 0x7D,
+	kVK_UpArrow                   = 0x7E
+};
+
+@interface NSView(SupportOutdatedOSX)
+- (NSPoint)convertPointFromBase:(NSPoint)aPoint;
+@end
+
+@implementation NSView(SupportOutdatedOSX)
+- (NSPoint)convertPointFromBase:(NSPoint)aPoint
+{
+    return [self convertPoint:aPoint fromView:nil];
+}
+@end
+
+#endif // prior to 10.5
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED < 1060
+
+enum
+{
+	NSApplicationActivationPolicyRegular
+};
+
+typedef NSInteger NSApplicationActivationPolicy;
+
+@interface NSApplication(ActivationPolicy)
+- (BOOL)setActivationPolicy:(NSApplicationActivationPolicy)activationPolicy;
+@end
+
+#endif // prior to 10.6
+
 #include <SDL.h>
 
 // Avoid collision between DObject class and Objective-C
@@ -76,6 +165,14 @@
 // ---------------------------------------------------------------------------
 
 
+#ifndef NSAppKitVersionNumber10_6
+
+@interface NSWindow(SetStyleMask)
+- (void)setStyleMask:(NSUInteger)styleMask;
+@end
+
+#endif // !NSAppKitVersionNumber10_6
+
 #ifndef NSAppKitVersionNumber10_7
 
 @interface NSView(HiDPIStubs)
@@ -97,6 +194,7 @@
 
 RenderBufferOptions rbOpts;
 
+EXTERN_CVAR(Bool, fullscreen)
 EXTERN_CVAR(Bool, vid_hidpi)
 
 CVAR(Bool, use_mouse,    true,  CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
@@ -268,7 +366,7 @@ void CheckNativeMouse()
 } // unnamed namespace
 
 
-// from iokit_joystick.cpp
+// see cocoa/i_joystick.cpp
 void I_ProcessJoysticks();
 
 
@@ -576,11 +674,9 @@ void ProcessKeyboardEvent(NSEvent* theEvent)
 
 bool IsHiDPISupported()
 {
-#ifdef NSAppKitVersionNumber10_7
-	return NSAppKitVersionNumber >= NSAppKitVersionNumber10_7;
-#else // !NSAppKitVersionNumber10_7
-	return false;
-#endif // NSAppKitVersionNumber10_7
+	// The following value shoud be equal to NSAppKitVersionNumber10_7
+	// and it's hard-coded in order to build on earlier SDKs
+	return NSAppKitVersionNumber >= 1138; 
 }
 
 NSSize GetRealContentViewSize(const NSWindow* const window)
@@ -591,7 +687,7 @@ NSSize GetRealContentViewSize(const NSWindow* const window)
 	// TODO: figure out why [NSView frame] returns different values in "fullscreen" and in window
 	// In "fullscreen" the result is multiplied by [NSScreen backingScaleFactor], but not in window
 
-	return (vid_hidpi && NSNormalWindowLevel == [window level])
+	return (vid_hidpi && !fullscreen)
 		? [view convertSizeToBacking:frameSize]
 		: frameSize;
 }
@@ -923,6 +1019,15 @@ static ApplicationController* appCtrl;
 
 @implementation FullscreenWindow
 
+static bool s_fullscreenNewAPI;
+
++ (void)initialize
+{
+	// The following value shoud be equal to NSAppKitVersionNumber10_6
+	// and it's hard-coded in order to build on earlier SDKs
+	s_fullscreenNewAPI = NSAppKitVersionNumber >= 1038;
+}
+
 - (bool)canBecomeKeyWindow
 {
 	return true;
@@ -930,27 +1035,33 @@ static ApplicationController* appCtrl;
 
 - (void)setLevel:(NSInteger)level
 {
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
-	[super setLevel:level];
-#else // 10.5 or earlier
-	// Old Carbon-based way to make fullscreen window above dock and menu
-	// It's supported on 64-bit, but on 10.6 and later the following is preferred:
-	// [NSWindow setLevel:NSMainMenuWindowLevel + 1]
+	if (s_fullscreenNewAPI)
+	{
+		[super setLevel:level];
+	}
+	else
+	{
+		// Old Carbon-based way to make fullscreen window above dock and menu
+		// It's supported on 64-bit, but on 10.6 and later the following is preferred:
+		// [NSWindow setLevel:NSMainMenuWindowLevel + 1]
 
-	const SystemUIMode mode = LEVEL_FULLSCREEN == level
-		? kUIModeAllHidden
-		: kUIModeNormal;
-	SetSystemUIMode(mode, 0);
-#endif // 10.6 or higher
+		const SystemUIMode mode = LEVEL_FULLSCREEN == level
+			? kUIModeAllHidden
+			: kUIModeNormal;
+		SetSystemUIMode(mode, 0);
+	}
 }
 
 - (void)setStyleMask:(NSUInteger)styleMask
 {
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
-    [super setStyleMask:styleMask];
-#else // 10.5 or earlier
-    [appCtrl setWindowStyleMask:styleMask];
-#endif // 10.6 or higher
+	if (s_fullscreenNewAPI)
+	{
+		[super setStyleMask:styleMask];
+	}
+	else
+	{
+		[appCtrl setWindowStyleMask:styleMask];
+	}
 }
 
 @end
@@ -1087,6 +1198,8 @@ static ApplicationController* appCtrl;
 	
 	// Hide window as nothing will be rendered at this point
 	[m_window orderOut:nil];
+
+	I_ShutdownJoysticks();
 }
 
 
@@ -1110,10 +1223,6 @@ static ApplicationController* appCtrl;
 	[window setOpaque:YES];
 	[window makeFirstResponder:self];
 	[window setAcceptsMouseMovedEvents:YES];
-
-	NSButton* closeButton = [window standardWindowButton:NSWindowCloseButton];
-	[closeButton setAction:@selector(closeWindow:)];
-	[closeButton setTarget:self];
 
 	return window;
 }
@@ -1221,6 +1330,10 @@ static ApplicationController* appCtrl;
 
 	[m_window setContentSize:windowSize];
 	[m_window center];
+
+	NSButton* closeButton = [m_window standardWindowButton:NSWindowCloseButton];
+	[closeButton setAction:@selector(terminate:)];
+	[closeButton setTarget:NSApp];
 }
 
 - (void)changeVideoResolution:(bool)fullscreen width:(int)width height:(int)height useHiDPI:(bool)hiDPI
@@ -1297,6 +1410,7 @@ static ApplicationController* appCtrl;
 
 		glGenTextures(1, &m_softwareRenderingTexture);
 		glBindTexture(GL_TEXTURE_RECTANGLE_ARB, m_softwareRenderingTexture);
+		glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
 
 		glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -1418,14 +1532,6 @@ static ApplicationController* appCtrl;
 
 	[m_window close];
 	m_window = tempWindow;
-}
-
-
-- (void)closeWindow:(id)sender
-{
-    I_ShutdownJoysticks();
-
-    [NSApp terminate:sender];
 }
 
 @end
@@ -1905,6 +2011,112 @@ int SDL_SetPalette(SDL_Surface* surface, int flags, SDL_Color* colors, int first
 	
 } // extern "C"
 
+
+namespace
+{
+
+NSMenuItem* CreateApplicationMenu()
+{
+	NSMenu* menu = [NSMenu new];
+
+	[menu addItemWithTitle:[@"About " stringByAppendingString:@GAMENAME]
+					   action:@selector(orderFrontStandardAboutPanel:)
+				keyEquivalent:@""];
+	[menu addItem:[NSMenuItem separatorItem]];
+	[menu addItemWithTitle:[@"Hide " stringByAppendingString:@GAMENAME]
+					   action:@selector(hide:)
+				keyEquivalent:@"h"];
+	[[menu addItemWithTitle:@"Hide Others"
+						action:@selector(hideOtherApplications:)
+				 keyEquivalent:@"h"]
+	 setKeyEquivalentModifierMask:NSAlternateKeyMask | NSCommandKeyMask];
+	[menu addItemWithTitle:@"Show All"
+					   action:@selector(unhideAllApplications:)
+				keyEquivalent:@""];
+	[menu addItem:[NSMenuItem separatorItem]];
+	[menu addItemWithTitle:[@"Quit " stringByAppendingString:@GAMENAME]
+					   action:@selector(terminate:)
+				keyEquivalent:@"q"];
+
+	NSMenuItem* menuItem = [NSMenuItem new];
+	[menuItem setSubmenu:menu];
+
+	if ([NSApp respondsToSelector:@selector(setAppleMenu:)])
+	{
+		[NSApp performSelector:@selector(setAppleMenu:) withObject:menu];
+	}
+
+	return menuItem;
+}
+
+NSMenuItem* CreateEditMenu()
+{
+	NSMenu* menu = [[NSMenu alloc] initWithTitle:@"Edit"];
+
+	[menu addItemWithTitle:@"Undo"
+						action:@selector(undo:)
+				 keyEquivalent:@"z"];
+	[menu addItemWithTitle:@"Redo"
+						action:@selector(redo:)
+				 keyEquivalent:@"Z"];
+	[menu addItem:[NSMenuItem separatorItem]];
+	[menu addItemWithTitle:@"Cut"
+						action:@selector(cut:)
+				 keyEquivalent:@"x"];
+	[menu addItemWithTitle:@"Copy"
+						action:@selector(copy:)
+				 keyEquivalent:@"c"];
+	[menu addItemWithTitle:@"Paste"
+						action:@selector(paste:)
+				 keyEquivalent:@"v"];
+	[menu addItemWithTitle:@"Delete"
+						action:@selector(delete:)
+				 keyEquivalent:@""];
+	[menu addItemWithTitle:@"Select All"
+						action:@selector(selectAll:)
+				 keyEquivalent:@"a"];
+
+	NSMenuItem* menuItem = [NSMenuItem new];
+	[menuItem setSubmenu:menu];
+
+	return menuItem;
+}
+
+NSMenuItem* CreateWindowMenu()
+{
+	NSMenu* menu = [[NSMenu alloc] initWithTitle:@"Window"];
+	[NSApp setWindowsMenu:menu];
+
+	[menu addItemWithTitle:@"Minimize"
+					action:@selector(performMiniaturize:)
+			 keyEquivalent:@"m"];
+	[menu addItemWithTitle:@"Zoom"
+					action:@selector(performZoom:)
+			 keyEquivalent:@""];
+	[menu addItem:[NSMenuItem separatorItem]];
+	[menu addItemWithTitle:@"Bring All to Front"
+					action:@selector(arrangeInFront:)
+			 keyEquivalent:@""];
+
+	NSMenuItem* menuItem = [NSMenuItem new];
+	[menuItem setSubmenu:menu];
+
+	return menuItem;
+}
+
+void CreateMenu()
+{
+	NSMenu* menuBar = [NSMenu new];
+	[menuBar addItem:CreateApplicationMenu()];
+	[menuBar addItem:CreateEditMenu()];
+	[menuBar addItem:CreateWindowMenu()];
+
+	[NSApp setMainMenu:menuBar];
+}
+
+} // unnamed namespace
+
+
 #ifdef main
 #undef main
 #endif // main
@@ -1936,7 +2148,15 @@ int main(int argc, char** argv)
 	NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
 
 	[NSApplication sharedApplication];
-	[NSBundle loadNibNamed:@"GZDoom" owner:NSApp];
+
+	// The following code isn't mandatory,
+	// but it enables to run the application without a bundle
+	if ([NSApp respondsToSelector:@selector(setActivationPolicy:)])
+	{
+		[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+	}
+
+	CreateMenu();
 
 	appCtrl = [ApplicationController new];
 	[NSApp setDelegate:appCtrl];
