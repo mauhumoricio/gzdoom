@@ -206,7 +206,7 @@ void AActor::Serialize (FArchive &arc)
 	{
 		arc << flags7;
 	}
-	if (SaveVersion >= 4511)
+	if (SaveVersion >= 4512)
 	{
 		arc << weaponspecial;
 	}
@@ -252,9 +252,13 @@ void AActor::Serialize (FArchive &arc)
 		<< MinMissileChance
 		<< SpawnFlags
 		<< Inventory
-		<< InventoryID
-		<< id
-		<< FloatBobPhase
+		<< InventoryID;
+	if (SaveVersion < 4513)
+	{
+		SDWORD id;
+		arc << id;
+	}
+	arc << FloatBobPhase
 		<< Translation
 		<< SeeSound
 		<< AttackSound
@@ -1163,7 +1167,7 @@ bool AActor::Massacre ()
 			P_DamageMobj (this, NULL, NULL, TELEFRAG_DAMAGE, NAME_Massacre);
 		}
 		while (health != prevhealth && health > 0);	//abort if the actor wasn't hurt.
-		return true;
+		return health <= 0;
 	}
 	return false;
 }
@@ -1195,13 +1199,7 @@ void P_ExplodeMissile (AActor *mo, line_t *line, AActor *target)
 		if (nextstate == NULL) nextstate = mo->FindState(NAME_Death, NAME_Extreme);
 	}
 	if (nextstate == NULL) nextstate = mo->FindState(NAME_Death);
-	mo->SetState (nextstate);
 	
-	if (mo->ObjectFlags & OF_EuthanizeMe)
-	{
-		return;
-	}
-
 	if (line != NULL && line->special == Line_Horizon && !(mo->flags3 & MF3_SKYEXPLODE))
 	{
 		// [RH] Don't explode missiles on horizon lines.
@@ -1276,8 +1274,17 @@ void P_ExplodeMissile (AActor *mo, line_t *line, AActor *target)
 		}
 	}
 
-	if (nextstate != NULL)
+	// play the sound before changing the state, so that AActor::Destroy can call S_RelinkSounds on it and the death state can override it.
+	if (mo->DeathSound)
 	{
+		S_Sound (mo, CHAN_VOICE, mo->DeathSound, 1,
+			(mo->flags3 & MF3_FULLVOLDEATH) ? ATTN_NONE : ATTN_NORM);
+	}
+
+	mo->SetState (nextstate);
+	if (!(mo->ObjectFlags & OF_EuthanizeMe))
+	{
+		// The rest only applies if the missile actor still exists.
 		// [RH] Change render style of exploding rockets
 		if (mo->flags5 & MF5_DEHEXPLOSION)
 		{
@@ -1310,11 +1317,6 @@ void P_ExplodeMissile (AActor *mo, line_t *line, AActor *target)
 
 		mo->flags &= ~MF_MISSILE;
 
-		if (mo->DeathSound)
-		{
-			S_Sound (mo, CHAN_VOICE, mo->DeathSound, 1,
-				(mo->flags3 & MF3_FULLVOLDEATH) ? ATTN_NONE : ATTN_NORM);
-		}
 	}
 }
 
@@ -3112,7 +3114,7 @@ void AActor::Tick ()
 				special2++;
 			}
 			//Added by MC: Freeze mode.
-			if (bglobal.freeze && !(player && !player->isbot))
+			if (bglobal.freeze && !(player && player->Bot == NULL))
 			{
 				return;
 			}
@@ -3226,25 +3228,25 @@ void AActor::Tick ()
 			}
 		}
 
-		if (bglobal.botnum && consoleplayer == Net_Arbitrator && !demoplayback &&
+		if (bglobal.botnum && !demoplayback &&
 			((flags & (MF_SPECIAL|MF_MISSILE)) || (flags3 & MF3_ISMONSTER)))
 		{
 			BotSupportCycles.Clock();
 			bglobal.m_Thinking = true;
 			for (i = 0; i < MAXPLAYERS; i++)
 			{
-				if (!playeringame[i] || !players[i].isbot)
+				if (!playeringame[i] || players[i].Bot == NULL)
 					continue;
 
 				if (flags3 & MF3_ISMONSTER)
 				{
 					if (health > 0
-						&& !players[i].enemy
+						&& !players[i].Bot->enemy
 						&& player ? !IsTeammate (players[i].mo) : true
 						&& P_AproxDistance (players[i].mo->x-x, players[i].mo->y-y) < MAX_MONSTER_TARGET_DIST
 						&& P_CheckSight (players[i].mo, this, SF_SEEPASTBLOCKEVERYTHING))
 					{ //Probably a monster, so go kill it.
-						players[i].enemy = this;
+						players[i].Bot->enemy = this;
 					}
 				}
 				else if (flags & MF_SPECIAL)
@@ -3256,10 +3258,10 @@ void AActor::Tick ()
 				}
 				else if (flags & MF_MISSILE)
 				{
-					if (!players[i].missile && (flags3 & MF3_WARNBOT))
+					if (!players[i].Bot->missile && (flags3 & MF3_WARNBOT))
 					{ //warn for incoming missiles.
 						if (target != players[i].mo && bglobal.Check_LOS (players[i].mo, this, ANGLE_90))
-							players[i].missile = this;
+							players[i].Bot->missile = this;
 					}
 				}
 			}
@@ -4246,6 +4248,12 @@ APlayerPawn *P_SpawnPlayer (FPlayerStart *mthing, int playernum, int flags)
 	if ((unsigned)playernum >= (unsigned)MAXPLAYERS || !playeringame[playernum])
 		return NULL;
 
+	// Old lerp data needs to go
+	if (playernum == consoleplayer)
+	{
+		P_PredictionLerpReset();
+	}
+
 	p = &players[playernum];
 
 	if (p->cls == NULL)
@@ -4357,9 +4365,6 @@ APlayerPawn *P_SpawnPlayer (FPlayerStart *mthing, int playernum, int flags)
 	mobj->angle = spawn_angle;
 	mobj->pitch = mobj->roll = 0;
 	mobj->health = p->health;
-
-	//Added by MC: Identification (number in the players[MAXPLAYERS] array)
-    mobj->id = playernum;
 
 	// [RH] Set player sprite based on skin
 	if (!(mobj->flags4 & MF4_NOSKIN))
@@ -5011,10 +5016,11 @@ void P_SpawnBlood (fixed_t x, fixed_t y, fixed_t z, angle_t dir, int damage, AAc
 				cls = cls->ParentClass;
 			}
 		}
+
+	statedone:
+		if (!(bloodtype <= 1)) th->renderflags |= RF_INVISIBLE;
 	}
 
-statedone:
-	if (!(bloodtype <= 1)) th->renderflags |= RF_INVISIBLE;
 	if (bloodtype >= 1)
 		P_DrawSplash2 (40, x, y, z, dir, 2, bloodcolor);
 }
@@ -5850,21 +5856,40 @@ AActor *P_SpawnPlayerMissile (AActor *source, fixed_t x, fixed_t y, fixed_t z,
 	return NULL;
 }
 
+int AActor::GetTeam()
+{
+	if (player)
+	{
+		return player->userinfo.GetTeam();
+	}
+
+	int myTeam = DesignatedTeam;
+
+	// Check for monsters that belong to a player on the team but aren't part of the team themselves.
+	if (myTeam == TEAM_NONE && FriendPlayer != 0)
+	{
+		myTeam = players[FriendPlayer - 1].userinfo.GetTeam();
+	}
+	return myTeam;
+
+}
+
 bool AActor::IsTeammate (AActor *other)
 {
 	if (!other)
+	{
 		return false;
+	}
 	else if (!deathmatch && player && other->player)
-		return true;
-	int myTeam = DesignatedTeam;
-	int otherTeam = other->DesignatedTeam;
-	if (player)
-		myTeam = player->userinfo.GetTeam();
-	if (other->player)
-		otherTeam = other->player->userinfo.GetTeam();
-	if (teamplay && myTeam != TEAM_NONE && myTeam == otherTeam)
 	{
 		return true;
+	}
+	else if (teamplay)
+	{
+		int myTeam = GetTeam();
+		int otherTeam = other->GetTeam();
+
+		return (myTeam != TEAM_NONE && myTeam == otherTeam);
 	}
 	return false;
 }
@@ -5961,7 +5986,7 @@ bool AActor::IsHostile (AActor *other)
 int AActor::DoSpecialDamage (AActor *target, int damage, FName damagetype)
 {
 	if (target->player && target->player->mo == target && damage < 1000 &&
-		(target->player->cheats & CF_GODMODE))
+		(target->player->cheats & CF_GODMODE || target->player->cheats & CF_GODMODE2))
 	{
 		return -1;
 	}

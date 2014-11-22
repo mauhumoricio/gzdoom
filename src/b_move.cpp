@@ -17,20 +17,7 @@
 #include "gi.h"
 #include "a_keys.h"
 #include "d_event.h"
-
-enum dirtype_t
-{
-    DI_EAST,
-    DI_NORTHEAST,
-    DI_NORTH,
-    DI_NORTHWEST,
-    DI_WEST,
-    DI_SOUTHWEST,
-    DI_SOUTH,
-    DI_SOUTHEAST,
-    DI_NODIR,
-    NUMDIRS
-};
+#include "p_enemy.h"
 
 static FRandom pr_botopendoor ("BotOpenDoor");
 static FRandom pr_bottrywalk ("BotTryWalk");
@@ -39,10 +26,6 @@ static FRandom pr_botnewchasedir ("BotNewChaseDir");
 // borrow some tables from p_enemy.cpp
 extern dirtype_t opposite[9];
 extern dirtype_t diags[4];
-extern fixed_t xspeed[8];
-extern fixed_t yspeed[8];
-
-extern TArray<line_t *> spechit;
 
 //Called while the bot moves after its player->dest mobj
 //which can be a weapon/enemy/item whatever.
@@ -50,19 +33,19 @@ void FCajunMaster::Roam (AActor *actor, ticcmd_t *cmd)
 {
 	int delta;
 
-	if (Reachable(actor, actor->player->dest))
+	if (Reachable(actor, actor->player->Bot->dest))
 	{ // Straight towards it.
-		actor->player->angle = R_PointToAngle2(actor->x, actor->y, actor->player->dest->x, actor->player->dest->y);
+		actor->player->Bot->angle = R_PointToAngle2(actor->x, actor->y, actor->player->Bot->dest->x, actor->player->Bot->dest->y);
 	}
 	else if (actor->movedir < 8) // turn towards movement direction if not there yet
 	{
-		actor->player->angle &= (angle_t)(7<<29);
-		delta = actor->player->angle - (actor->movedir << 29);
+		actor->player->Bot->angle &= (angle_t)(7<<29);
+		delta = actor->player->Bot->angle - (actor->movedir << 29);
 
 		if (delta > 0)
-			actor->player->angle -= ANG45;
+			actor->player->Bot->angle -= ANG45;
 		else if (delta < 0)
-			actor->player->angle += ANG45;
+			actor->player->Bot->angle += ANG45;
 	}
 
 	// chase towards destination.
@@ -151,7 +134,7 @@ void FCajunMaster::NewChaseDir (AActor *actor, ticcmd_t *cmd)
 
     dirtype_t   turnaround;
 
-    if (!actor->player->dest)
+    if (!actor->player->Bot->dest)
 	{
 #ifndef BOT_RELEASE_COMPILE
         Printf ("Bot tried move without destination\n");
@@ -162,8 +145,8 @@ void FCajunMaster::NewChaseDir (AActor *actor, ticcmd_t *cmd)
     olddir = (dirtype_t)actor->movedir;
     turnaround = opposite[olddir];
 
-    deltax = actor->player->dest->x - actor->x;
-    deltay = actor->player->dest->y - actor->y;
+    deltax = actor->player->Bot->dest->x - actor->x;
+    deltay = actor->player->Bot->dest->y - actor->y;
 
     if (deltax > 10*FRACUNIT)
         d[1] = DI_EAST;
@@ -332,23 +315,23 @@ void FCajunMaster::TurnToAng (AActor *actor)
 	{
 		if (actor->player->ReadyWeapon->WeaponFlags & WIF_BOT_EXPLOSIVE)
 		{
-			if (actor->player->t_roam && !actor->player->missile)
+			if (actor->player->Bot->t_roam && !actor->player->Bot->missile)
 			{ //Keep angle that where when shot where decided.
 				return;
 			}
 		}
 
 
-		if(actor->player->enemy)
-			if(!actor->player->dest) //happens when running after item in combat situations, or normal, prevents weak turns
+		if(actor->player->Bot->enemy)
+			if(!actor->player->Bot->dest) //happens when running after item in combat situations, or normal, prevents weak turns
 				if(actor->player->ReadyWeapon->ProjectileType == NULL && !(actor->player->ReadyWeapon->WeaponFlags & WIF_MELEEWEAPON))
-					if(Check_LOS(actor, actor->player->enemy, SHOOTFOV+5*ANGLE_1))
+					if(Check_LOS(actor, actor->player->Bot->enemy, SHOOTFOV+5*ANGLE_1))
 						maxturn = 3;
 	}
 
-	int distance = actor->player->angle - actor->angle;
+	int distance = actor->player->Bot->angle - actor->angle;
 
-	if (abs (distance) < OKAYRANGE && !actor->player->enemy)
+	if (abs (distance) < OKAYRANGE && !actor->player->Bot->enemy)
 		return;
 
 	distance /= TURNSENS;

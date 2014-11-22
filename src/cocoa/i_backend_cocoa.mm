@@ -41,7 +41,98 @@
 
 #include <AppKit/AppKit.h>
 #include <Carbon/Carbon.h>
+#include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED < 1050
+
+// Missing definitions for 10.4 and earlier
+
+typedef unsigned int NSUInteger;
+typedef          int NSInteger;
+
+typedef float CGFloat;
+
+// From HIToolbox/Events.h
+enum 
+{
+	kVK_Return                    = 0x24,
+	kVK_Tab                       = 0x30,
+	kVK_Space                     = 0x31,
+	kVK_Delete                    = 0x33,
+	kVK_Escape                    = 0x35,
+	kVK_Command                   = 0x37,
+	kVK_Shift                     = 0x38,
+	kVK_CapsLock                  = 0x39,
+	kVK_Option                    = 0x3A,
+	kVK_Control                   = 0x3B,
+	kVK_RightShift                = 0x3C,
+	kVK_RightOption               = 0x3D,
+	kVK_RightControl              = 0x3E,
+	kVK_Function                  = 0x3F,
+	kVK_F17                       = 0x40,
+	kVK_VolumeUp                  = 0x48,
+	kVK_VolumeDown                = 0x49,
+	kVK_Mute                      = 0x4A,
+	kVK_F18                       = 0x4F,
+	kVK_F19                       = 0x50,
+	kVK_F20                       = 0x5A,
+	kVK_F5                        = 0x60,
+	kVK_F6                        = 0x61,
+	kVK_F7                        = 0x62,
+	kVK_F3                        = 0x63,
+	kVK_F8                        = 0x64,
+	kVK_F9                        = 0x65,
+	kVK_F11                       = 0x67,
+	kVK_F13                       = 0x69,
+	kVK_F16                       = 0x6A,
+	kVK_F14                       = 0x6B,
+	kVK_F10                       = 0x6D,
+	kVK_F12                       = 0x6F,
+	kVK_F15                       = 0x71,
+	kVK_Help                      = 0x72,
+	kVK_Home                      = 0x73,
+	kVK_PageUp                    = 0x74,
+	kVK_ForwardDelete             = 0x75,
+	kVK_F4                        = 0x76,
+	kVK_End                       = 0x77,
+	kVK_F2                        = 0x78,
+	kVK_PageDown                  = 0x79,
+	kVK_F1                        = 0x7A,
+	kVK_LeftArrow                 = 0x7B,
+	kVK_RightArrow                = 0x7C,
+	kVK_DownArrow                 = 0x7D,
+	kVK_UpArrow                   = 0x7E
+};
+
+@interface NSView(SupportOutdatedOSX)
+- (NSPoint)convertPointFromBase:(NSPoint)aPoint;
+@end
+
+@implementation NSView(SupportOutdatedOSX)
+- (NSPoint)convertPointFromBase:(NSPoint)aPoint
+{
+    return [self convertPoint:aPoint fromView:nil];
+}
+@end
+
+#endif // prior to 10.5
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED < 1060
+
+enum
+{
+	NSApplicationActivationPolicyRegular
+};
+
+typedef NSInteger NSApplicationActivationPolicy;
+
+@interface NSApplication(ActivationPolicy)
+- (BOOL)setActivationPolicy:(NSApplicationActivationPolicy)activationPolicy;
+@end
+
+#endif // prior to 10.6
 
 #include <SDL.h>
 
@@ -72,6 +163,14 @@
 // ---------------------------------------------------------------------------
 
 
+#ifndef NSAppKitVersionNumber10_6
+
+@interface NSWindow(SetStyleMask)
+- (void)setStyleMask:(NSUInteger)styleMask;
+@end
+
+#endif // !NSAppKitVersionNumber10_6
+
 #ifndef NSAppKitVersionNumber10_7
 
 @interface NSView(HiDPIStubs)
@@ -93,6 +192,7 @@
 
 RenderBufferOptions rbOpts;
 
+EXTERN_CVAR(Bool, fullscreen)
 EXTERN_CVAR(Bool, vid_hidpi)
 
 CVAR(Bool, use_mouse,    true,  CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
@@ -264,13 +364,13 @@ void CheckNativeMouse()
 } // unnamed namespace
 
 
-// from iokit_joystick.cpp
+// see cocoa/i_joystick.cpp
 void I_ProcessJoysticks();
 
 
 void I_GetEvent()
 {
-	[[NSRunLoop mainRunLoop] limitDateForMode:NSDefaultRunLoopMode];
+	[[NSRunLoop currentRunLoop] limitDateForMode:NSDefaultRunLoopMode];
 }
 
 void I_StartTic()
@@ -572,11 +672,9 @@ void ProcessKeyboardEvent(NSEvent* theEvent)
 
 bool IsHiDPISupported()
 {
-#ifdef NSAppKitVersionNumber10_7
-	return NSAppKitVersionNumber >= NSAppKitVersionNumber10_7;
-#else // !NSAppKitVersionNumber10_7
-	return false;
-#endif // NSAppKitVersionNumber10_7
+	// The following value shoud be equal to NSAppKitVersionNumber10_7
+	// and it's hard-coded in order to build on earlier SDKs
+	return NSAppKitVersionNumber >= 1138; 
 }
 
 NSSize GetRealContentViewSize(const NSWindow* const window)
@@ -587,7 +685,7 @@ NSSize GetRealContentViewSize(const NSWindow* const window)
 	// TODO: figure out why [NSView frame] returns different values in "fullscreen" and in window
 	// In "fullscreen" the result is multiplied by [NSScreen backingScaleFactor], but not in window
 
-	return (vid_hidpi && NSNormalWindowLevel == [window level])
+	return (vid_hidpi && !fullscreen)
 		? [view convertSizeToBacking:frameSize]
 		: frameSize;
 }
@@ -603,7 +701,7 @@ void NSEventToGameMousePosition(NSEvent* inEvent, event_t* outEvent)
 
 	const NSPoint   viewPos = IsHiDPISupported()
 		? [view convertPointToBacking:windowPos]
-		: [view convertPointFromBase:windowPos];
+		: [view convertPoint:windowPos fromView:nil];
 
 	const CGFloat frameHeight = GetRealContentViewSize(window).height;
 
@@ -632,6 +730,7 @@ void ProcessMouseButtonEvent(NSEvent* theEvent)
 			case NSLeftMouseUp:    event.subtype = EV_GUI_LButtonUp;   break;
 			case NSRightMouseUp:   event.subtype = EV_GUI_RButtonUp;   break;
 			case NSOtherMouseUp:   event.subtype = EV_GUI_MButtonUp;   break;
+			default: break;
 		}
 		
 		NSEventToGameMousePosition(theEvent, &event);
@@ -652,6 +751,9 @@ void ProcessMouseButtonEvent(NSEvent* theEvent)
 			case NSRightMouseUp:
 			case NSOtherMouseUp:
 				event.type = EV_KeyUp;
+				break;
+				
+			default:
 				break;
 		}
 		
@@ -779,6 +881,19 @@ const Uint16 BYTES_PER_PIXEL = 4;
 // ---------------------------------------------------------------------------
 
 
+namespace
+{
+	const NSInteger LEVEL_FULLSCREEN = NSMainMenuWindowLevel + 1;
+	const NSInteger LEVEL_WINDOWED   = NSNormalWindowLevel;
+
+	const NSUInteger STYLE_MASK_FULLSCREEN = NSBorderlessWindowMask;
+	const NSUInteger STYLE_MASK_WINDOWED   = NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask;
+}
+
+
+// ---------------------------------------------------------------------------
+
+
 @interface FullscreenWindow : NSWindow
 {
 
@@ -786,27 +901,8 @@ const Uint16 BYTES_PER_PIXEL = 4;
 
 - (bool)canBecomeKeyWindow;
 
-- (void)close;
-
-@end
-
-
-@implementation FullscreenWindow
-
-- (bool)canBecomeKeyWindow
-{
-	return true;
-}
-
-
-- (void)close
-{
-	[super close];
-	
-	I_ShutdownJoysticks();
-
-	[NSApp terminate:self];
-}
+- (void)setLevel:(NSInteger)level;
+- (void)setStyleMask:(NSUInteger)styleMask;
 
 @end
 
@@ -890,10 +986,68 @@ const Uint16 BYTES_PER_PIXEL = 4;
 
 - (void)setMainWindowVisible:(bool)visible;
 
+- (void)setWindowStyleMask:(NSUInteger)styleMask;
+
 @end
 
 
 static ApplicationController* appCtrl;
+
+
+// ---------------------------------------------------------------------------
+
+
+@implementation FullscreenWindow
+
+static bool s_fullscreenNewAPI;
+
++ (void)initialize
+{
+	// The following value shoud be equal to NSAppKitVersionNumber10_6
+	// and it's hard-coded in order to build on earlier SDKs
+	s_fullscreenNewAPI = NSAppKitVersionNumber >= 1038;
+}
+
+- (bool)canBecomeKeyWindow
+{
+	return true;
+}
+
+- (void)setLevel:(NSInteger)level
+{
+	if (s_fullscreenNewAPI)
+	{
+		[super setLevel:level];
+	}
+	else
+	{
+		// Old Carbon-based way to make fullscreen window above dock and menu
+		// It's supported on 64-bit, but on 10.6 and later the following is preferred:
+		// [NSWindow setLevel:NSMainMenuWindowLevel + 1]
+
+		const SystemUIMode mode = LEVEL_FULLSCREEN == level
+			? kUIModeAllHidden
+			: kUIModeNormal;
+		SetSystemUIMode(mode, 0);
+	}
+}
+
+- (void)setStyleMask:(NSUInteger)styleMask
+{
+	if (s_fullscreenNewAPI)
+	{
+		[super setStyleMask:styleMask];
+	}
+	else
+	{
+		[appCtrl setWindowStyleMask:styleMask];
+	}
+}
+
+@end
+
+
+// ---------------------------------------------------------------------------
 
 
 @implementation ApplicationController
@@ -976,8 +1130,8 @@ static ApplicationController* appCtrl;
 										   selector:@selector(processEvents:)
 										   userInfo:nil
 											repeats:YES];
-	[[NSRunLoop mainRunLoop] addTimer:timer
-							  forMode:NSDefaultRunLoopMode];
+	[[NSRunLoop currentRunLoop] addTimer:timer
+								 forMode:NSDefaultRunLoopMode];
 
 	exit(SDL_main(s_argc, s_argv));
 }
@@ -1024,6 +1178,8 @@ static ApplicationController* appCtrl;
 	
 	// Hide window as nothing will be rendered at this point
 	[m_window orderOut:nil];
+
+	I_ShutdownJoysticks();
 }
 
 
@@ -1038,6 +1194,19 @@ static ApplicationController* appCtrl;
 }
 
 
+- (FullscreenWindow*)createWindow:(NSUInteger)styleMask
+{
+	FullscreenWindow* window = [[FullscreenWindow alloc] initWithContentRect:NSMakeRect(0, 0, 640, 480)
+																   styleMask:styleMask
+																	 backing:NSBackingStoreBuffered
+																	   defer:NO];
+	[window setOpaque:YES];
+	[window makeFirstResponder:self];
+	[window setAcceptsMouseMovedEvents:YES];
+
+	return window;
+}
+
 - (void)initializeOpenGL
 {
 	if (m_openGLInitialized)
@@ -1045,15 +1214,7 @@ static ApplicationController* appCtrl;
 		return;
 	}
 	
-	// Create window
-	
-	m_window = [[FullscreenWindow alloc] initWithContentRect:NSMakeRect(0, 0, 640, 480)
-												   styleMask:NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask
-													 backing:NSBackingStoreBuffered
-													   defer:NO];
-	[m_window setOpaque:YES];
-	[m_window makeFirstResponder:self];
-	[m_window setAcceptsMouseMovedEvents:YES];
+	m_window = [self createWindow:STYLE_MASK_WINDOWED];
 	
 	// Create OpenGL context and view
 	
@@ -1062,22 +1223,22 @@ static ApplicationController* appCtrl;
 	
 	attributes[i++] = NSOpenGLPFADoubleBuffer;
 	attributes[i++] = NSOpenGLPFAColorSize;
-	attributes[i++] = 32;
+	attributes[i++] = NSOpenGLPixelFormatAttribute(32);
 	attributes[i++] = NSOpenGLPFADepthSize;
-	attributes[i++] = 24;
+	attributes[i++] = NSOpenGLPixelFormatAttribute(24);
 	attributes[i++] = NSOpenGLPFAStencilSize;
-	attributes[i++] = 8;
+	attributes[i++] = NSOpenGLPixelFormatAttribute(8);
 	
 	if (m_multisample)
 	{
 		attributes[i++] = NSOpenGLPFAMultisample;
 		attributes[i++] = NSOpenGLPFASampleBuffers;
-		attributes[i++] = 1;
+		attributes[i++] = NSOpenGLPixelFormatAttribute(1);
 		attributes[i++] = NSOpenGLPFASamples;
-		attributes[i++] = m_multisample;
+		attributes[i++] = NSOpenGLPixelFormatAttribute(m_multisample);
 	}	
 	
-	attributes[i] = 0;
+	attributes[i] = NSOpenGLPixelFormatAttribute(0);
 	
 	NSOpenGLPixelFormat *pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attributes];
 	
@@ -1091,7 +1252,7 @@ static ApplicationController* appCtrl;
 	m_openGLInitialized = true;
 }
 
-- (void)switchToFullscreen
+- (void)setFullscreenModeWidth:(int)width height:(int)height
 {
 	NSScreen* screen = [m_window screen];
 
@@ -1103,44 +1264,56 @@ static ApplicationController* appCtrl;
 	const float  displayWidth  = displayRect.size.width;
 	const float  displayHeight = displayRect.size.height;
 	
-	const float pixelScaleFactorX = displayWidth  / static_cast<float>(m_width );
-	const float pixelScaleFactorY = displayHeight / static_cast<float>(m_height);
+	const float pixelScaleFactorX = displayWidth  / static_cast<float>(width );
+	const float pixelScaleFactorY = displayHeight / static_cast<float>(height);
 	
 	rbOpts.pixelScale = std::min(pixelScaleFactorX, pixelScaleFactorY);
 	
-	rbOpts.width  = m_width  * rbOpts.pixelScale;
-	rbOpts.height = m_height * rbOpts.pixelScale;
+	rbOpts.width  = width  * rbOpts.pixelScale;
+	rbOpts.height = height * rbOpts.pixelScale;
 	
 	rbOpts.shiftX = (displayWidth  - rbOpts.width ) / 2.0f;
 	rbOpts.shiftY = (displayHeight - rbOpts.height) / 2.0f;
 
-	[m_window setLevel:NSMainMenuWindowLevel + 1];
-	[m_window setStyleMask:NSBorderlessWindowMask];
-	[m_window setHidesOnDeactivate:YES];
+	if (!m_fullscreen)
+	{
+		[m_window setLevel:LEVEL_FULLSCREEN];
+		[m_window setStyleMask:STYLE_MASK_FULLSCREEN];
+		[m_window setHidesOnDeactivate:YES];
+	}
+
 	[m_window setFrame:displayRect display:YES];
 	[m_window setFrameOrigin:NSMakePoint(0.0f, 0.0f)];
 }
 
-- (void)switchToWindowed
+- (void)setWindowedModeWidth:(int)width height:(int)height
 {
 	rbOpts.pixelScale = 1.0f;
 	
-	rbOpts.width  = static_cast<float>(m_width );
-	rbOpts.height = static_cast<float>(m_height);
+	rbOpts.width  = static_cast<float>(width );
+	rbOpts.height = static_cast<float>(height);
 	
 	rbOpts.shiftX = 0.0f;
 	rbOpts.shiftY = 0.0f;
 
-	const NSSize windowPixelSize = NSMakeSize(m_width, m_height);
+	const NSSize windowPixelSize = NSMakeSize(width, height);
 	const NSSize windowSize = vid_hidpi
 		? [[m_window contentView] convertSizeFromBacking:windowPixelSize]
 		: windowPixelSize;
 
-	[m_window setLevel:NSNormalWindowLevel];
-	[m_window setStyleMask:NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask];
-	[m_window setHidesOnDeactivate:NO];
+	if (m_fullscreen)
+	{
+		[m_window setLevel:LEVEL_WINDOWED];
+		[m_window setStyleMask:STYLE_MASK_WINDOWED];
+		[m_window setHidesOnDeactivate:NO];
+	}
+
 	[m_window setContentSize:windowSize];
 	[m_window center];
+
+	NSButton* closeButton = [m_window standardWindowButton:NSWindowCloseButton];
+	[closeButton setAction:@selector(terminate:)];
+	[closeButton setTarget:NSApp];
 }
 
 - (void)changeVideoResolution:(bool)fullscreen width:(int)width height:(int)height useHiDPI:(bool)hiDPI
@@ -1153,34 +1326,29 @@ static ApplicationController* appCtrl;
 		return;
 	}
 
-	m_fullscreen = fullscreen;
-	m_width      = width;
-	m_height     = height;
-	m_hiDPI      = hiDPI;
-
 	[self initializeOpenGL];
 
 	if (IsHiDPISupported())
 	{
 		NSOpenGLView* const glView = [m_window contentView];
-		[glView setWantsBestResolutionOpenGLSurface:m_hiDPI];
+		[glView setWantsBestResolutionOpenGLSurface:hiDPI];
 	}
 
-	if (m_fullscreen)
+	if (fullscreen)
 	{
-		[self switchToFullscreen];
+		[self setFullscreenModeWidth:width height:height];
 	}
 	else
 	{
-		[self switchToWindowed];
+		[self setWindowedModeWidth:width height:height];
 	}
 
 	rbOpts.dirty = true;
 
 	const NSSize viewSize = GetRealContentViewSize(m_window);
 	
-	glViewport(0, 0, viewSize.width, viewSize.height);
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glViewport(0, 0, static_cast<GLsizei>(viewSize.width), static_cast<GLsizei>(viewSize.height));
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	CGLFlushDrawable(CGLGetCurrentContext());
@@ -1192,7 +1360,12 @@ static ApplicationController* appCtrl;
 	if (![m_window isKeyWindow])
 	{
 		[m_window makeKeyAndOrderFront:nil];
-	}	
+	}
+
+	m_fullscreen = fullscreen;
+	m_width      = width;
+	m_height     = height;
+	m_hiDPI      = hiDPI;
 }
 
 - (void)useHiDPI:(bool)hiDPI
@@ -1213,16 +1386,17 @@ static ApplicationController* appCtrl;
 {
 	if (0 == m_softwareRenderingTexture)
 	{
-		glEnable(GL_TEXTURE_2D);
+		glEnable(GL_TEXTURE_RECTANGLE_ARB);
 
 		glGenTextures(1, &m_softwareRenderingTexture);
-		glBindTexture(GL_TEXTURE_2D, m_softwareRenderingTexture);
+		glBindTexture(GL_TEXTURE_RECTANGLE_ARB, m_softwareRenderingTexture);
+		glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE, GL_TRUE);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	}
 
 	delete[] m_softwareRenderingBuffer;
@@ -1244,7 +1418,9 @@ static ApplicationController* appCtrl;
 - (void)processEvents:(NSTimer*)timer
 {
 	ZD_UNUSED(timer);
-	
+
+	NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
+
     while (true)
     {
         NSEvent* event = [NSApp nextEventMatchingMask:NSAnyEventMask
@@ -1292,12 +1468,17 @@ static ApplicationController* appCtrl;
 			case NSFlagsChanged:
 				ProcessKeyboardFlagsEvent(event);
 				break;
+				
+			default:
+				break;
 		}
 		
 		[NSApp sendEvent:event];
 	}
     
     [NSApp updateWindows];
+
+	[pool release];
 }
 
 
@@ -1317,6 +1498,20 @@ static ApplicationController* appCtrl;
 	{
 		[m_window orderOut:nil];
 	}
+}
+
+
+- (void)setWindowStyleMask:(NSUInteger)styleMask
+{
+	// Before 10.6 it's impossible to change window's style mask
+	// To workaround this new window should be created with required style mask
+    // This method should not be called when building for Snow Leopard or newer
+
+	FullscreenWindow* tempWindow = [self createWindow:styleMask];
+	[tempWindow setContentView:[m_window contentView]];
+
+	[m_window close];
+	m_window = tempWindow;
 }
 
 @end
@@ -1354,6 +1549,8 @@ void I_SetMainWindowVisible(bool visible)
 
 bool I_SetCursor(FTexture* cursorpic)
 {
+	NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
+
 	if (NULL == cursorpic || FTexture::TEX_Null == cursorpic->UseType)
 	{
 		s_cursor = [NSCursor arrowCursor];
@@ -1381,6 +1578,8 @@ bool I_SetCursor(FTexture* cursorpic)
 		// Load bitmap data to representation
 		
 		BYTE* buffer = [bitmapImageRep bitmapData];
+		memset(buffer, 0, imagePitch * imageHeight);
+
 		FBitmap bitmap(buffer, imagePitch, imageWidth, imageHeight);
 		cursorpic->CopyTrueColorPixels(&bitmap, 0, 0);
 		
@@ -1406,7 +1605,9 @@ bool I_SetCursor(FTexture* cursorpic)
 	}
 	
 	[appCtrl invalidateCursorRects];
-	
+
+	[pool release];
+
 	return true;
 }
 
@@ -1541,36 +1742,52 @@ SDL_Rect** SDL_ListModes(SDL_PixelFormat* format, Uint32 flags)
 	ZD_UNUSED(format);
 	ZD_UNUSED(flags);
 	
-	static std::vector< SDL_Rect* > resolutions;
+	static std::vector<SDL_Rect*> resolutions;
 	
 	if (resolutions.empty())
 	{
-#define DEFINE_RESOLUTION(WIDTH, HEIGHT)                                   \
+#define DEFINE_RESOLUTION(WIDTH, HEIGHT)                                     \
 	static SDL_Rect resolution_##WIDTH##_##HEIGHT = { 0, 0, WIDTH, HEIGHT }; \
 	resolutions.push_back(&resolution_##WIDTH##_##HEIGHT);
 		
-		DEFINE_RESOLUTION(640,  480);
-		DEFINE_RESOLUTION(720,  480);
-		DEFINE_RESOLUTION(800,  600);
+		DEFINE_RESOLUTION( 640,  480);
+		DEFINE_RESOLUTION( 720,  480);
+		DEFINE_RESOLUTION( 800,  480);
+		DEFINE_RESOLUTION( 800,  600);
+		DEFINE_RESOLUTION(1024,  600);
 		DEFINE_RESOLUTION(1024,  640);
 		DEFINE_RESOLUTION(1024,  768);
 		DEFINE_RESOLUTION(1152,  720);
+		DEFINE_RESOLUTION(1152,  864);
 		DEFINE_RESOLUTION(1280,  720);
+		DEFINE_RESOLUTION(1280,  768);
 		DEFINE_RESOLUTION(1280,  800);
+		DEFINE_RESOLUTION(1280,  854);
 		DEFINE_RESOLUTION(1280,  960);
 		DEFINE_RESOLUTION(1280, 1024);
 		DEFINE_RESOLUTION(1366,  768);
 		DEFINE_RESOLUTION(1400, 1050);
 		DEFINE_RESOLUTION(1440,  900);
+		DEFINE_RESOLUTION(1440,  960);
+		DEFINE_RESOLUTION(1440, 1080);
 		DEFINE_RESOLUTION(1600,  900);
 		DEFINE_RESOLUTION(1600, 1200);
 		DEFINE_RESOLUTION(1680, 1050);
 		DEFINE_RESOLUTION(1920, 1080);
 		DEFINE_RESOLUTION(1920, 1200);
+		DEFINE_RESOLUTION(2048, 1080);
 		DEFINE_RESOLUTION(2048, 1536);
+		DEFINE_RESOLUTION(2560, 1080);
 		DEFINE_RESOLUTION(2560, 1440);
 		DEFINE_RESOLUTION(2560, 1600);
+		DEFINE_RESOLUTION(2560, 2048);
 		DEFINE_RESOLUTION(2880, 1800);
+		DEFINE_RESOLUTION(3200, 1800);
+		DEFINE_RESOLUTION(3440, 1440);
+		DEFINE_RESOLUTION(3840, 2160);
+		DEFINE_RESOLUTION(3840, 2400);
+		DEFINE_RESOLUTION(4096, 2160);
+		DEFINE_RESOLUTION(5120, 2880);
 		
 #undef DEFINE_RESOLUTION
 		
@@ -1732,19 +1949,25 @@ int SDL_Flip(SDL_Surface* screen)
 	
 	const int width  = screen->w;
 	const int height = screen->h;
-	
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
-		width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, screen->pixels);
+
+#ifdef __LITTLE_ENDIAN__
+	static const GLenum format = GL_RGBA;
+#else // __BIG_ENDIAN__
+	static const GLenum format = GL_ABGR_EXT;
+#endif // __LITTLE_ENDIAN__
+
+	glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA8,
+		width, height, 0, format, GL_UNSIGNED_BYTE, screen->pixels);
 
 	glBegin(GL_QUADS);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glTexCoord2f(0.0f, 0.0f);
 	glVertex2f(0.0f, 0.0f);
-	glTexCoord2f(1.0f, 0.0f);
+	glTexCoord2f(width, 0.0f);
 	glVertex2f(width, 0.0f);
-	glTexCoord2f(1.0f, 1.0f);
+	glTexCoord2f(width, height);
 	glVertex2f(width, height);
-	glTexCoord2f(0.0f, 1.0f);
+	glTexCoord2f(0.0f, height);
 	glVertex2f(0.0f, height);
 	glEnd();
 
@@ -1768,43 +1991,118 @@ int SDL_SetPalette(SDL_Surface* surface, int flags, SDL_Color* colors, int first
 	
 } // extern "C"
 
+
+namespace
+{
+
+NSMenuItem* CreateApplicationMenu()
+{
+	NSMenu* menu = [NSMenu new];
+
+	[menu addItemWithTitle:[@"About " stringByAppendingString:@GAMENAME]
+					   action:@selector(orderFrontStandardAboutPanel:)
+				keyEquivalent:@""];
+	[menu addItem:[NSMenuItem separatorItem]];
+	[menu addItemWithTitle:[@"Hide " stringByAppendingString:@GAMENAME]
+					   action:@selector(hide:)
+				keyEquivalent:@"h"];
+	[[menu addItemWithTitle:@"Hide Others"
+						action:@selector(hideOtherApplications:)
+				 keyEquivalent:@"h"]
+	 setKeyEquivalentModifierMask:NSAlternateKeyMask | NSCommandKeyMask];
+	[menu addItemWithTitle:@"Show All"
+					   action:@selector(unhideAllApplications:)
+				keyEquivalent:@""];
+	[menu addItem:[NSMenuItem separatorItem]];
+	[menu addItemWithTitle:[@"Quit " stringByAppendingString:@GAMENAME]
+					   action:@selector(terminate:)
+				keyEquivalent:@"q"];
+
+	NSMenuItem* menuItem = [NSMenuItem new];
+	[menuItem setSubmenu:menu];
+
+	if ([NSApp respondsToSelector:@selector(setAppleMenu:)])
+	{
+		[NSApp performSelector:@selector(setAppleMenu:) withObject:menu];
+	}
+
+	return menuItem;
+}
+
+NSMenuItem* CreateEditMenu()
+{
+	NSMenu* menu = [[NSMenu alloc] initWithTitle:@"Edit"];
+
+	[menu addItemWithTitle:@"Undo"
+						action:@selector(undo:)
+				 keyEquivalent:@"z"];
+	[menu addItemWithTitle:@"Redo"
+						action:@selector(redo:)
+				 keyEquivalent:@"Z"];
+	[menu addItem:[NSMenuItem separatorItem]];
+	[menu addItemWithTitle:@"Cut"
+						action:@selector(cut:)
+				 keyEquivalent:@"x"];
+	[menu addItemWithTitle:@"Copy"
+						action:@selector(copy:)
+				 keyEquivalent:@"c"];
+	[menu addItemWithTitle:@"Paste"
+						action:@selector(paste:)
+				 keyEquivalent:@"v"];
+	[menu addItemWithTitle:@"Delete"
+						action:@selector(delete:)
+				 keyEquivalent:@""];
+	[menu addItemWithTitle:@"Select All"
+						action:@selector(selectAll:)
+				 keyEquivalent:@"a"];
+
+	NSMenuItem* menuItem = [NSMenuItem new];
+	[menuItem setSubmenu:menu];
+
+	return menuItem;
+}
+
+NSMenuItem* CreateWindowMenu()
+{
+	NSMenu* menu = [[NSMenu alloc] initWithTitle:@"Window"];
+	[NSApp setWindowsMenu:menu];
+
+	[menu addItemWithTitle:@"Minimize"
+					action:@selector(performMiniaturize:)
+			 keyEquivalent:@"m"];
+	[menu addItemWithTitle:@"Zoom"
+					action:@selector(performZoom:)
+			 keyEquivalent:@""];
+	[menu addItem:[NSMenuItem separatorItem]];
+	[menu addItemWithTitle:@"Bring All to Front"
+					action:@selector(arrangeInFront:)
+			 keyEquivalent:@""];
+
+	NSMenuItem* menuItem = [NSMenuItem new];
+	[menuItem setSubmenu:menu];
+
+	return menuItem;
+}
+
+void CreateMenu()
+{
+	NSMenu* menuBar = [NSMenu new];
+	[menuBar addItem:CreateApplicationMenu()];
+	[menuBar addItem:CreateEditMenu()];
+	[menuBar addItem:CreateWindowMenu()];
+
+	[NSApp setMainMenu:menuBar];
+}
+
+} // unnamed namespace
+
+
 #ifdef main
 #undef main
 #endif // main
 
-static void CheckOSVersion()
-{
-	static const char* const PARAMETER_NAME = "kern.osrelease";
-
-	size_t size = 0;
-
-    if (-1 == sysctlbyname(PARAMETER_NAME, NULL, &size, NULL, 0))
-	{
-		return;
-	}
-
-    char* version = static_cast<char* >(alloca(size));
-
-    if (-1 == sysctlbyname(PARAMETER_NAME, version, &size, NULL, 0))
-	{
-		return;
-	}
-
-	if (strcmp(version, "10.0") < 0)
-	{
-		CFOptionFlags responseFlags;
-		CFUserNotificationDisplayAlert(0, kCFUserNotificationStopAlertLevel, NULL, NULL, NULL,
-			CFSTR("Unsupported version of OS X"), CFSTR("You need OS X 10.6 or higher running on Intel platform in order to play."),
-			NULL, NULL, NULL, &responseFlags);
-
-		exit(EXIT_FAILURE);
-	}
-}
-
 int main(int argc, char** argv)
 {
-	CheckOSVersion();
-
 	gettimeofday(&s_startTicks, NULL);
 
 	for (int i = 0; i <= argc; ++i)
@@ -1830,7 +2128,15 @@ int main(int argc, char** argv)
 	NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
 
 	[NSApplication sharedApplication];
-	[NSBundle loadNibNamed:@"zdoom" owner:NSApp];
+
+	// The following code isn't mandatory,
+	// but it enables to run the application without a bundle
+	if ([NSApp respondsToSelector:@selector(setActivationPolicy:)])
+	{
+		[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+	}
+
+	CreateMenu();
 
 	appCtrl = [ApplicationController new];
 	[NSApp setDelegate:appCtrl];

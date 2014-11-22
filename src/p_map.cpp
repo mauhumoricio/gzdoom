@@ -198,7 +198,7 @@ void P_GetFloorCeilingZ(FCheckPosition &tmf, int flags)
 
 		if (ff_top > tmf.floorz)
 		{
-			if (ff_top <= tmf.z || (!(flags && FFCF_3DRESTRICT) && (tmf.thing != NULL && ff_bottom < tmf.z && ff_top < tmf.z + tmf.thing->MaxStepHeight)))
+			if (ff_top <= tmf.z || (!(flags & FFCF_3DRESTRICT) && (tmf.thing != NULL && ff_bottom < tmf.z && ff_top < tmf.z + tmf.thing->MaxStepHeight)))
 			{
 				tmf.dropoffz = tmf.floorz = ff_top;
 				tmf.floorpic = *rover->top.texture;
@@ -380,7 +380,9 @@ bool P_TeleportMove(AActor *thing, fixed_t x, fixed_t y, fixed_t z, bool telefra
 		// ... and some items can never be telefragged while others will be telefragged by everything that teleports upon them.
 		if ((StompAlwaysFrags && !(th->flags6 & MF6_NOTELEFRAG)) || (th->flags7 & MF7_ALWAYSTELEFRAG))
 		{
-			P_DamageMobj(th, thing, thing, TELEFRAG_DAMAGE, NAME_Telefrag, DMG_THRUSTLESS);
+			// Don't actually damage if predicting a teleport
+			if (thing->player == NULL || !(thing->player->cheats & CF_PREDICTING))
+				P_DamageMobj(th, thing, thing, TELEFRAG_DAMAGE, NAME_Telefrag, DMG_THRUSTLESS);
 			continue;
 		}
 		return false;
@@ -734,11 +736,9 @@ bool PIT_CheckLine(line_t *ld, const FBoundingBox &box, FCheckPosition &tm)
 	else
 	{ // Find the point on the line closest to the actor's center, and use
 		// that to calculate openings
-		float dx = (float)ld->dx;
-		float dy = (float)ld->dy;
-		fixed_t r = (fixed_t)(((float)(tm.x - ld->v1->x) * dx +
-			(float)(tm.y - ld->v1->y) * dy) /
-			(dx*dx + dy*dy) * 16777216.f);
+		SQWORD r_den = (SQWORD(ld->dx)*ld->dx + SQWORD(ld->dy)*ld->dy) / (1 << 24);
+		SQWORD r_num = ((SQWORD(tm.x - ld->v1->x)*ld->dx) + (SQWORD(tm.y - ld->v1->y)*ld->dy));
+		fixed_t r = (fixed_t)(r_num / r_den);
 		/*		Printf ("%d:%d: %d  (%d %d %d %d)  (%d %d %d %d)\n", level.time, ld-lines, r,
 		ld->frontsector->floorplane.a,
 		ld->frontsector->floorplane.b,
@@ -1109,24 +1109,27 @@ bool PIT_CheckThing(AActor *thing, FCheckPosition &tm)
 					//     cases where they are clearly supposed to do that
 					if (thing->IsFriend(tm.thing->target))
 					{
-						// Friends never harm each other
-						return false;
+						// Friends never harm each other, unless the shooter has the HARMFRIENDS set.
+						if (!(thing->flags7 & MF7_HARMFRIENDS)) return false;
 					}
-					if (thing->TIDtoHate != 0 && thing->TIDtoHate == tm.thing->target->TIDtoHate)
+					else
 					{
-						// [RH] Don't hurt monsters that hate the same thing as you do
-						return false;
-					}
-					if (thing->GetSpecies() == tm.thing->target->GetSpecies() && !(thing->flags6 & MF6_DOHARMSPECIES))
-					{
-						// Don't hurt same species or any relative -
-						// but only if the target isn't one's hostile.
-						if (!thing->IsHostile(tm.thing->target))
+						if (thing->TIDtoHate != 0 && thing->TIDtoHate == tm.thing->target->TIDtoHate)
 						{
-							// Allow hurting monsters the shooter hates.
-							if (thing->tid == 0 || tm.thing->target->TIDtoHate != thing->tid)
+							// [RH] Don't hurt monsters that hate the same thing as you do
+							return false;
+						}
+						if (thing->GetSpecies() == tm.thing->target->GetSpecies() && !(thing->flags6 & MF6_DOHARMSPECIES))
+						{
+							// Don't hurt same species or any relative -
+							// but only if the target isn't one's hostile.
+							if (!thing->IsHostile(tm.thing->target))
 							{
-								return false;
+								// Allow hurting monsters the shooter hates.
+								if (thing->tid == 0 || tm.thing->target->TIDtoHate != thing->tid)
+								{
+									return false;
+								}
 							}
 						}
 					}
@@ -1917,13 +1920,13 @@ bool P_TryMove(AActor *thing, fixed_t x, fixed_t y,
 		}
 
 		//Added by MC: To prevent bot from getting into dangerous sectors.
-		if (thing->player && thing->player->isbot && thing->flags & MF_SHOOTABLE)
+		if (thing->player && thing->player->Bot != NULL && thing->flags & MF_SHOOTABLE)
 		{
 			if (tm.sector != thing->Sector
 				&& bglobal.IsDangerous(tm.sector))
 			{
-				thing->player->prev = thing->player->dest;
-				thing->player->dest = NULL;
+				thing->player->Bot->prev = thing->player->Bot->dest;
+				thing->player->Bot->dest = NULL;
 				thing->velx = 0;
 				thing->vely = 0;
 				thing->z = oldz;
@@ -1981,13 +1984,6 @@ bool P_TryMove(AActor *thing, fixed_t x, fixed_t y,
 		thing->AdjustFloorClip();
 	}
 
-	// [RH] Don't activate anything if just predicting
-	if (thing->player && (thing->player->cheats & CF_PREDICTING))
-	{
-		thing->flags6 &= ~MF6_INTRYMOVE;
-		return true;
-	}
-
 	// if any special lines were hit, do the effect
 	if (!(thing->flags & (MF_TELEPORT | MF_NOCLIP)))
 	{
@@ -1998,7 +1994,11 @@ bool P_TryMove(AActor *thing, fixed_t x, fixed_t y,
 			oldside = P_PointOnLineSide(oldx, oldy, ld);
 			if (side != oldside && ld->special && !(thing->flags6 & MF6_NOTRIGGER))
 			{
-				if (thing->player)
+				if (thing->player && (thing->player->cheats & CF_PREDICTING))
+				{
+					P_PredictLine(ld, thing, oldside, SPAC_Cross);
+				}
+				else if (thing->player)
 				{
 					P_ActivateLine(ld, thing, oldside, SPAC_Cross);
 				}
@@ -2022,6 +2022,13 @@ bool P_TryMove(AActor *thing, fixed_t x, fixed_t y,
 				}
 			}
 		}
+	}
+
+	// [RH] Don't activate anything if just predicting
+	if (thing->player && (thing->player->cheats & CF_PREDICTING))
+	{
+		thing->flags6 &= ~MF6_INTRYMOVE;
+		return true;
 	}
 
 	// [RH] Check for crossing fake floor/ceiling
@@ -2151,7 +2158,7 @@ bool P_CheckMove(AActor *thing, fixed_t x, fixed_t y)
 			{ // too big a step up
 				return false;
 			}
-			else if ((thing->flags & MF_MISSILE) && !(thing->flags6 && MF6_STEPMISSILE) && tm.floorz > newz)
+			else if ((thing->flags & MF_MISSILE) && !(thing->flags6 & MF6_STEPMISSILE) && tm.floorz > newz)
 			{ // [RH] Don't let normal missiles climb steps
 				return false;
 			}
@@ -3686,7 +3693,7 @@ AActor *P_LineAttack(AActor *t1, angle_t angle, fixed_t distance,
 			// [GZ] If MF6_FORCEPAIN is set, we need to call P_DamageMobj even if damage is 0!
 			// Note: The puff may not yet be spawned here so we must check the class defaults, not the actor.
 			int newdam = damage;
-			if (damage || (puffDefaults != NULL && puffDefaults->flags6 & MF6_FORCEPAIN))
+			if (damage || (puffDefaults != NULL && ((puffDefaults->flags6 & MF6_FORCEPAIN) || (puffDefaults->flags7 & MF7_CAUSEPAIN))))
 			{
 				int dmgflags = DMG_INFLICTOR_IS_PUFF | pflag;
 				// Allow MF5_PIERCEARMOR on a weapon as well.
@@ -3780,6 +3787,52 @@ AActor *P_LineAttack(AActor *t1, angle_t angle, fixed_t distance,
 	{
 		return P_LineAttack(t1, angle, distance, pitch, damage, damageType, type, flags, victim, actualdamage);
 	}
+	return NULL;
+}
+
+//==========================================================================
+//
+// P_LinePickActor
+//
+//==========================================================================
+
+AActor *P_LinePickActor(AActor *t1, angle_t angle, fixed_t distance, int pitch,
+						DWORD actorMask, DWORD wallMask)
+{
+	fixed_t vx, vy, vz, shootz;
+	
+	angle >>= ANGLETOFINESHIFT;
+	pitch = (angle_t)(pitch) >> ANGLETOFINESHIFT;
+
+	vx = FixedMul(finecosine[pitch], finecosine[angle]);
+	vy = FixedMul(finecosine[pitch], finesine[angle]);
+	vz = -finesine[pitch];
+
+	shootz = t1->z - t1->floorclip + (t1->height >> 1);
+	if (t1->player != NULL)
+	{
+		shootz += FixedMul(t1->player->mo->AttackZOffset, t1->player->crouchfactor);
+	}
+	else
+	{
+		shootz += 8 * FRACUNIT;
+	}
+
+	FTraceResults trace;
+	Origin TData;
+	
+	TData.Caller = t1;
+	TData.hitGhosts = true;
+	
+	if (Trace(t1->x, t1->y, shootz, t1->Sector, vx, vy, vz, distance,
+		actorMask, wallMask, t1, trace, TRACE_NoSky, CheckForActor, &TData))
+	{
+		if (trace.HitType == TRACE_HitActor)
+		{
+			return trace.Actor;
+		}
+	}
+
 	return NULL;
 }
 
@@ -4056,7 +4109,7 @@ void P_RailAttack(AActor *source, int damage, int offset_xy, fixed_t offset_z, i
 		z = shootz + FixedMul(hitdist, vz);
 
 		if ((hitactor->flags & MF_NOBLOOD) ||
-			(hitactor->flags2 & (MF2_DORMANT | MF2_INVULNERABLE)))
+			(hitactor->flags2 & MF2_DORMANT || ((hitactor->flags2 & MF2_INVULNERABLE) && !(puffDefaults->flags3 & MF3_FOILINVUL))))
 		{
 			spawnpuff = (puffclass != NULL);
 		}
@@ -4077,7 +4130,10 @@ void P_RailAttack(AActor *source, int damage, int offset_xy, fixed_t offset_z, i
 		{
 			P_PoisonMobj(hitactor, thepuff ? thepuff : source, source, puffDefaults->PoisonDamage, puffDefaults->PoisonDuration, puffDefaults->PoisonPeriod, puffDefaults->PoisonDamageType);
 		}
-		int newdam = P_DamageMobj(hitactor, thepuff ? thepuff : source, source, damage, damagetype, DMG_INFLICTOR_IS_PUFF);
+		int dmgFlagPass = DMG_INFLICTOR_IS_PUFF;
+		dmgFlagPass += (puffDefaults->flags3 & MF3_FOILINVUL) ? DMG_FOILINVUL : 0; //[MC]Because the original foilinvul check wasn't working.
+		dmgFlagPass += (puffDefaults->flags7 & MF7_FOILBUDDHA) ? DMG_FOILBUDDHA : 0;
+		int newdam = P_DamageMobj(hitactor, thepuff ? thepuff : source, source, damage, damagetype, dmgFlagPass);
 		if (bleed)
 		{
 			P_SpawnBlood(x, y, z, (source->angle + angleoffset) - ANG180, newdam > 0 ? newdam : damage, hitactor);
@@ -4624,7 +4680,7 @@ void P_RadiusAttack(AActor *bombspot, AActor *bombsource, int bombdamage, int bo
 
 				if (!(flags & RADF_NODAMAGE))
 					newdam = P_DamageMobj(thing, bombspot, bombsource, damage, bombmod);
-				else if (thing->player == NULL && !(flags & RADF_NOIMPACTDAMAGE))
+				else if (thing->player == NULL && (!(flags & RADF_NOIMPACTDAMAGE) && !(thing->flags7 & MF7_DONTTHRUST)))
 					thing->flags2 |= MF2_BLASTED;
 
 				if (!(thing->flags & MF_ICECORPSE))
@@ -4636,25 +4692,29 @@ void P_RadiusAttack(AActor *bombspot, AActor *bombsource, int bombdamage, int bo
 					{
 						if (bombsource == NULL || !(bombsource->flags2 & MF2_NODMGTHRUST))
 						{
-							thrust = points * 0.5f / (double)thing->Mass;
-							if (bombsource == thing)
+							if (!(thing->flags7 & MF7_DONTTHRUST))
 							{
-								thrust *= selfthrustscale;
+							
+								thrust = points * 0.5f / (double)thing->Mass;
+								if (bombsource == thing)
+								{
+									thrust *= selfthrustscale;
+								}
+								velz = (double)(thing->z + (thing->height >> 1) - bombspot->z) * thrust;
+								if (bombsource != thing)
+								{
+									velz *= 0.5f;
+								}
+								else
+								{
+									velz *= 0.8f;
+								}
+								angle_t ang = R_PointToAngle2(bombspot->x, bombspot->y, thing->x, thing->y) >> ANGLETOFINESHIFT;
+								thing->velx += fixed_t(finecosine[ang] * thrust);
+								thing->vely += fixed_t(finesine[ang] * thrust);
+								if (!(flags & RADF_NODAMAGE))
+									thing->velz += (fixed_t)velz;	// this really doesn't work well
 							}
-							velz = (double)(thing->z + (thing->height >> 1) - bombspot->z) * thrust;
-							if (bombsource != thing)
-							{
-								velz *= 0.5f;
-							}
-							else
-							{
-								velz *= 0.8f;
-							}
-							angle_t ang = R_PointToAngle2(bombspot->x, bombspot->y, thing->x, thing->y) >> ANGLETOFINESHIFT;
-							thing->velx += fixed_t(finecosine[ang] * thrust);
-							thing->vely += fixed_t(finesine[ang] * thrust);
-							if (!(flags & RADF_NODAMAGE))
-								thing->velz += (fixed_t)velz;	// this really doesn't work well
 						}
 					}
 				}

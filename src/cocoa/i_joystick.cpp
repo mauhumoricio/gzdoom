@@ -33,6 +33,12 @@
 
 #include "m_joy.h"
 
+#include <AvailabilityMacros.h>
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 1050
+
+#include <CoreServices/CoreServices.h>
+
 #include "HID_Utilities_External.h"
 
 #include "d_event.h"
@@ -724,7 +730,19 @@ IOKitJoystickManager* s_joystickManager;
 
 void I_StartupJoysticks()
 {
-	s_joystickManager = new IOKitJoystickManager;
+	SInt32 majorVersion = 0;
+	SInt32 minorVersion = 0;
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+	Gestalt(gestaltSystemVersionMajor, &majorVersion);
+	Gestalt(gestaltSystemVersionMinor, &minorVersion);
+#pragma clang diagnostic pop
+
+	if (majorVersion >= 10 && minorVersion >= 5)
+	{
+		s_joystickManager = new IOKitJoystickManager;
+	}
 }
 
 void I_ShutdownJoysticks()
@@ -774,3 +792,37 @@ void I_ProcessJoysticks()
 		s_joystickManager->Update();
 	}
 }
+
+#else // prior to 10.5
+
+void I_StartupJoysticks()
+{
+}
+
+void I_ShutdownJoysticks()
+{
+}
+
+void I_GetJoysticks(TArray<IJoystickConfig*>& sticks)
+{
+	sticks.Clear();
+}
+
+void I_GetAxes(float axes[NUM_JOYAXIS])
+{
+	for (size_t i = 0; i < NUM_JOYAXIS; ++i)
+	{
+		axes[i] = 0.0f;
+	}
+}
+
+IJoystickConfig *I_UpdateDeviceList()
+{
+	return NULL;
+}
+
+void I_ProcessJoysticks()
+{
+}
+
+#endif // 10.5 or higher

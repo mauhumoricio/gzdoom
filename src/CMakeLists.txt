@@ -7,6 +7,7 @@ endif( COMMAND cmake_policy )
 include( CheckCXXSourceCompiles )
 include( CheckFunctionExists )
 include( CheckCXXCompilerFlag )
+include( CheckLibraryExists )
 include( FindPkgConfig )
 include( FindOpenGL )
 
@@ -27,7 +28,7 @@ endif( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 
 option( DYN_FLUIDSYNTH "Dynamically load fluidsynth" ON )
 
-option( OSX_COCOA_BACKEND "Use native Cocoa backend instead of SDL" OFF )
+option( OSX_COCOA_BACKEND "Use native Cocoa backend instead of SDL" ON )
 
 if( CMAKE_SIZEOF_VOID_P MATCHES "8" )
 	set( X64 64 )
@@ -405,19 +406,19 @@ if( NOT NO_ASM )
 			set( ASM_FLAGS -f win32 -DWIN32 -i${CMAKE_CURRENT_SOURCE_DIR}/ )
 		endif( X64 )
 	endif( UNIX )
-	if( WIN32 )
+	if( WIN32 AND NOT X64 )
 		set( FIXRTEXT fixrtext )
-	else( WIN32 )
+	else( WIN32 AND NOT X64 )
 		set( FIXRTEXT "" )
-	endif( WIN32 )
+	endif( WIN32 AND NOT X64 )
 	message( STATUS "Selected assembler: ${ASSEMBLER}" )
 	MACRO( ADD_ASM_FILE indir infile )
 		set( ASM_OUTPUT_${infile} "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/zdoom.dir/${indir}/${infile}${ASM_OUTPUT_EXTENSION}" )
-		if( WIN32 )
+		if( WIN32 AND NOT X64 )
 			set( FIXRTEXT_${infile} COMMAND ${FIXRTEXT} "${ASM_OUTPUT_${infile}}" )
-		else( WIN32 )
+		else( WIN32 AND NOT X64 )
 			set( FIXRTEXT_${infile} COMMAND "" )
-		endif( WIN32 )
+		endif( WIN32 AND NOT X64 )
 		add_custom_command( OUTPUT ${ASM_OUTPUT_${infile}}
 			COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/zdoom.dir/${indir}
 			COMMAND ${ASSEMBLER} ${ASM_FLAGS} -o"${ASM_OUTPUT_${infile}}" "${CMAKE_CURRENT_SOURCE_DIR}/${indir}/${infile}${ASM_SOURCE_EXTENSION}"
@@ -640,28 +641,18 @@ set( PLAT_COCOA_SOURCES
 	cocoa/zdoom.icns )
 
 if( APPLE )
+	set( PLAT_SDL_SOURCES ${PLAT_SDL_SYSTEM_SOURCES} "${FMOD_LIBRARY}" )
+
 	if( OSX_COCOA_BACKEND )
-		find_program( IBTOOL ibtool HINTS "/usr/bin" "${OSX_DEVELOPER_ROOT}/usr/bin" )
-		if( ${IBTOOL} STREQUAL "IBTOOL-NOTFOUND" )
-			message( SEND_ERROR "ibtool can not be found to compile xib files." )
-		endif( ${IBTOOL} STREQUAL "IBTOOL-NOTFOUND" )
-
-		set( NIB_FILE "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/zdoom.dir/zdoom.nib" )
-		add_custom_command( OUTPUT "${NIB_FILE}"
-			COMMAND ${IBTOOL} --errors --warnings --notices --output-format human-readable-text
-					--compile "${NIB_FILE}" "${CMAKE_CURRENT_SOURCE_DIR}/cocoa/zdoom.xib"
-			COMMENT "Compiling zdoom.xib" )
-
-		set( PLAT_SDL_SOURCES ${PLAT_SDL_SYSTEM_SOURCES} ${PLAT_COCOA_SOURCES} "${NIB_FILE}" "${FMOD_LIBRARY}" )
-
-		set_source_files_properties( "${NIB_FILE}" PROPERTIES MACOSX_PACKAGE_LOCATION Resources )
+		set( PLAT_MAC_SOURCES ${PLAT_MAC_SOURCES} ${PLAT_COCOA_SOURCES} )
 	else( OSX_COCOA_BACKEND )
-		set( PLAT_SDL_SOURCES ${PLAT_SDL_SYSTEM_SOURCES} ${PLAT_SDL_SPECIAL_SOURCES} "${FMOD_LIBRARY}" )
-		set( PLAT_MAC_SOURCES ${PLAT_MAC_SOURCES} sdl/SDLMain.m )
+		set( PLAT_MAC_SOURCES ${PLAT_MAC_SOURCES} ${PLAT_SDL_SPECIAL_SOURCES} sdl/SDLMain.m )
 	endif( OSX_COCOA_BACKEND )
 
 	set_source_files_properties( cocoa/zdoom.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources )
 	set_source_files_properties( "${FMOD_LIBRARY}" PROPERTIES MACOSX_PACKAGE_LOCATION Frameworks )
+else( APPLE )
+	set( PLAT_SDL_SOURCES ${PLAT_SDL_SYSTEM_SOURCES} ${PLAT_SDL_SPECIAL_SOURCES} )
 endif( APPLE )
 
 if( WIN32 )
@@ -1326,7 +1317,7 @@ endif( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 
 if( APPLE )
 	set_target_properties(zdoom PROPERTIES
-		LINK_FLAGS "-framework Cocoa -framework IOKit -framework OpenGL"
+		LINK_FLAGS "-framework Carbon -framework Cocoa -framework IOKit -framework OpenGL"
 		MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/cocoa/zdoom-info.plist" )
 
 	# Fix fmod link so that it can be found in the app bundle.
