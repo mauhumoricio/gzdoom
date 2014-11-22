@@ -2,7 +2,7 @@
  ** gl_wrapper.cpp
  **
  **---------------------------------------------------------------------------
- ** Copyright 2014 Alexey Lysiuk
+ ** Copyright 2012-2014 Alexey Lysiuk
  ** All rights reserved.
  **
  ** Redistribution and use in source and binary forms, with or without
@@ -764,11 +764,6 @@ CapabilityChecker::CapabilityChecker()
 		"The graphics hardware in your system does not support %s.\n"
 		"It is required to run this version of " GAMENAME ".\n"
 		"You can try to use SDL-based version where this feature is not mandatory.";
-
-	if (!(gl.flags & RFL_GL_21))
-	{
-		I_FatalError(ERROR_MESSAGE, "OpenGL 2.1");
-	}
 
 	if (!(gl.flags & RFL_FRAMEBUFFER))
 	{
