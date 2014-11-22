@@ -117,7 +117,6 @@
 		8A2C748016C66DA600ABD7C8 /* loadokt2.c in Sources */ = {isa = PBXBuildFile; fileRef = 8A2C747716C66CB600ABD7C8 /* loadokt2.c */; };
 		8A2C748116C66DBA00ABD7C8 /* readokt.c in Sources */ = {isa = PBXBuildFile; fileRef = 8A2C747816C66CB600ABD7C8 /* readokt.c */; };
 		8A2C748216C66DBA00ABD7C8 /* readokt2.c in Sources */ = {isa = PBXBuildFile; fileRef = 8A2C747916C66CB600ABD7C8 /* readokt2.c */; };
-		8A3AC15B14BE294E000D402B /* GZDoom.xib in Resources */ = {isa = PBXBuildFile; fileRef = 8A3AC15A14BE294E000D402B /* GZDoom.xib */; };
 		8A3ACEF417F833FC002E550F /* m_specialpaths.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A3ACEF317F833FC002E550F /* m_specialpaths.cpp */; };
 		8A3ACEF517F833FC002E550F /* m_specialpaths.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A3ACEF317F833FC002E550F /* m_specialpaths.cpp */; };
 		8A3DA66D1547DB5100D1302A /* thingdef_function.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A3DA66C1547DB5100D1302A /* thingdef_function.cpp */; };
@@ -7011,7 +7010,6 @@
 			files = (
 				8A9F530114BB0F2900F3369B /* doom.icns in Resources */,
 				8A9F530214BB0F2900F3369B /* Credits.html in Resources */,
-				8A3AC15B14BE294E000D402B /* GZDoom.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
