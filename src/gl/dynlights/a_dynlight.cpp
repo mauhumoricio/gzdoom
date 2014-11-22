@@ -641,7 +641,6 @@ void ADynamicLight::UnlinkLight ()
 	}
 	while (touching_sides) touching_sides = DeleteLightNode(touching_sides);
 	while (touching_subsectors) touching_subsectors = DeleteLightNode(touching_subsectors);
-	while (touching_sector) touching_sector = DeleteLightNode(touching_sector);
 }
 
 void ADynamicLight::Destroy()

@@ -655,7 +655,6 @@ FCloneTexture::FCloneTexture (FTexture *source, int usetype)
 	bNoDecals = source->bNoDecals;
 	Rotations = source->Rotations;
 	UseType = usetype;
-	gl_info.bBrightmap = false;
 	id.SetInvalid();
 	SourceLump = -1;
 }
