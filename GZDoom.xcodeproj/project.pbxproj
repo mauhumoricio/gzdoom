@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 45;
 	objects = {
 
 /* Begin PBXAggregateTarget section */
@@ -2545,6 +2545,7 @@
 		8ACBD0DE19C772AD003DF192 /* i_gui.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = i_gui.cpp; sourceTree = "<group>"; };
 		8ACBD0DF19C772AD003DF192 /* i_timer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = i_timer.cpp; sourceTree = "<group>"; };
 		8AD870F1140A4EC5007A06A9 /* Credits.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; name = Credits.html; path = misc/resources/Credits.html; sourceTree = "<group>"; };
+		8ADDA7CC1A21F47000758D1D /* i_osversion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = i_osversion.h; sourceTree = "<group>"; };
 		8AF278CA1390F0370095D9A0 /* libjpeg_gzdoom.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libjpeg_gzdoom.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8AF2790B1390F0880095D9A0 /* jcomapi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = jcomapi.c; sourceTree = "<group>"; };
 		8AF2790C1390F0880095D9A0 /* jconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = jconfig.h; sourceTree = "<group>"; };
@@ -3687,6 +3688,7 @@
 			);
 			name = GZDoom;
 			sourceTree = "<group>";
+			usesTabs = 1;
 		};
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
@@ -5164,6 +5166,7 @@
 				8AAF227B19BB083600CC80A0 /* HID_Utilities_External.h */,
 				8AAF227C19BB083600CC80A0 /* i_backend_cocoa.mm */,
 				8AAF227D19BB083600CC80A0 /* i_joystick.cpp */,
+				8ADDA7CC1A21F47000758D1D /* i_osversion.h */,
 				8AAF227E19BB083600CC80A0 /* i_rbopts.h */,
 				8AAF227F19BB083600CC80A0 /* i_timer.cpp */,
 				8AAF228019BB083600CC80A0 /* ImmrHIDUtilAddOn.c */,
@@ -6924,7 +6927,7 @@
 				LastUpgradeCheck = 0460;
 			};
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "GZDoom" */;
-			compatibilityVersion = "Xcode 3.2";
+			compatibilityVersion = "Xcode 3.1";
 			developmentRegion = English;
 			hasScannedForEncodings = 1;
 			knownRegions = (
