@@ -101,6 +101,9 @@ if( APPLE )
 	SET( CMAKE_OSX_ARCHITECTURES "i386" CACHE STRING "OX Architectures" FORCE)
 endif( APPLE )
 
+option( NO_FMOD "Disable FMODEx sound support" OFF )
+option( NO_OPENAL "Disable OpenAL sound support" OFF )
+
 find_package( BZip2 )
 find_package( JPEG )
 find_package( ZLIB )

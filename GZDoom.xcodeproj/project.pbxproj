@@ -123,6 +123,12 @@
 		8A3DA66E1547DB5100D1302A /* thingdef_function.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A3DA66C1547DB5100D1302A /* thingdef_function.cpp */; };
 		8A42210D150A0458001D28A0 /* libhid_utilities_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A422108150A0420001D28A0 /* libhid_utilities_gzdoom.a */; };
 		8A6227A21A18E0C4004235B1 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A74F4661392532C001F54B0 /* Carbon.framework */; };
+		8A517FB519600F7000FAAB33 /* mpg123_decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAA19600F4400FAAB33 /* mpg123_decoder.cpp */; };
+		8A517FB619600F7500FAAB33 /* mpg123_decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAA19600F4400FAAB33 /* mpg123_decoder.cpp */; };
+		8A517FB719600F7F00FAAB33 /* oalsound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAC19600F4400FAAB33 /* oalsound.cpp */; };
+		8A517FB819600F8700FAAB33 /* oalsound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAC19600F4400FAAB33 /* oalsound.cpp */; };
+		8A517FB919600F8E00FAAB33 /* sndfile_decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAE19600F4400FAAB33 /* sndfile_decoder.cpp */; };
+		8A517FBA19600F9200FAAB33 /* sndfile_decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAE19600F4400FAAB33 /* sndfile_decoder.cpp */; };
 		8A651FF6191E69EB009DB9CD /* glew.c in Sources */ = {isa = PBXBuildFile; fileRef = 8A651FF5191E69E3009DB9CD /* glew.c */; };
 		8A651FFB191E6A39009DB9CD /* libglew_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A651FED191E6988009DB9CD /* libglew_gzdoom.a */; };
 		8A651FFC191E6A3E009DB9CD /* libglew_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A651FED191E6988009DB9CD /* libglew_gzdoom.a */; };
@@ -149,6 +155,20 @@
 		8A7D86E715370D98002D03BD /* hq2x.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27E11139126C00095D9A0 /* hq2x.cpp */; };
 		8A7D86E815370D98002D03BD /* hq3x.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27E12139126C00095D9A0 /* hq3x.cpp */; };
 		8A7D86E915370D98002D03BD /* hq4x.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27E13139126C00095D9A0 /* hq4x.cpp */; };
+		8A805D05196046FE009AF921 /* libmpg123.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A805D04196046FE009AF921 /* libmpg123.a */; };
+		8A805D06196046FE009AF921 /* libmpg123.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A805D04196046FE009AF921 /* libmpg123.a */; };
+		8A805D0D19604711009AF921 /* libsndfile.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A805D0C19604711009AF921 /* libsndfile.a */; };
+		8A805D0E19604711009AF921 /* libsndfile.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A805D0C19604711009AF921 /* libsndfile.a */; };
+		8A805D1019604786009AF921 /* OpenAL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A805D0F19604786009AF921 /* OpenAL.framework */; };
+		8A805D1119604796009AF921 /* OpenAL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A805D0F19604786009AF921 /* OpenAL.framework */; };
+		8A805D15196048A3009AF921 /* libvorbis.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A805D1419604887009AF921 /* libvorbis.a */; };
+		8A805D16196048A5009AF921 /* libogg.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A805D1319604887009AF921 /* libogg.a */; };
+		8A805D17196048AC009AF921 /* libFLAC.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A805D1219604887009AF921 /* libFLAC.a */; };
+		8A805D18196048B1009AF921 /* libFLAC.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A805D1219604887009AF921 /* libFLAC.a */; };
+		8A805D19196048B5009AF921 /* libogg.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A805D1319604887009AF921 /* libogg.a */; };
+		8A805D1A196048B7009AF921 /* libvorbis.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A805D1419604887009AF921 /* libvorbis.a */; };
+		8A805D1C196048F2009AF921 /* libvorbisenc.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A805D1B196048EB009AF921 /* libvorbisenc.a */; };
+		8A805D1D196048F6009AF921 /* libvorbisenc.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A805D1B196048EB009AF921 /* libvorbisenc.a */; };
 		8A8D68B713C84344001D368F /* r_swrenderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A8D68B313C84344001D368F /* r_swrenderer.cpp */; };
 		8A8D68B813C84344001D368F /* r_utility.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A8D68B513C84344001D368F /* r_utility.cpp */; };
 		8A938D1113B6039F002627DE /* actorptrselect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A938D0F13B6039F002627DE /* actorptrselect.cpp */; };
@@ -1401,6 +1421,13 @@
 		8A41EE9D19FB9B220072E317 /* ultdoom_xbox.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = ultdoom_xbox.txt; sourceTree = "<group>"; };
 		8A422108150A0420001D28A0 /* libhid_utilities_gzdoom.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libhid_utilities_gzdoom.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A44602813BF0306007FA8E1 /* gzdoom.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = gzdoom.xcconfig; path = misc/gzdoom.xcconfig; sourceTree = "<group>"; };
+		8A517FA919600F4400FAAB33 /* efx.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = efx.h; sourceTree = "<group>"; };
+		8A517FAA19600F4400FAAB33 /* mpg123_decoder.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = mpg123_decoder.cpp; sourceTree = "<group>"; };
+		8A517FAB19600F4400FAAB33 /* mpg123_decoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mpg123_decoder.h; sourceTree = "<group>"; };
+		8A517FAC19600F4400FAAB33 /* oalsound.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = oalsound.cpp; sourceTree = "<group>"; };
+		8A517FAD19600F4400FAAB33 /* oalsound.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = oalsound.h; sourceTree = "<group>"; };
+		8A517FAE19600F4400FAAB33 /* sndfile_decoder.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sndfile_decoder.cpp; sourceTree = "<group>"; };
+		8A517FAF19600F4400FAAB33 /* sndfile_decoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sndfile_decoder.h; sourceTree = "<group>"; };
 		8A651FED191E6988009DB9CD /* libglew_gzdoom.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libglew_gzdoom.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A651FF1191E69E3009DB9CD /* glew.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = glew.h; sourceTree = "<group>"; };
 		8A651FF2191E69E3009DB9CD /* glxew.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = glxew.h; sourceTree = "<group>"; };
@@ -1414,6 +1441,13 @@
 		8A7C310218F16B220001B5A2 /* gme_types.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gme_types.h; sourceTree = "<group>"; };
 		8A7C310318F16B220001B5A2 /* Spc_Filter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Spc_Filter.cpp; sourceTree = "<group>"; };
 		8A7C310418F16B220001B5A2 /* Spc_Filter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Spc_Filter.h; sourceTree = "<group>"; };
+		8A805D04196046FE009AF921 /* libmpg123.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmpg123.a; path = thirdparty/mpg123/lib/libmpg123.a; sourceTree = "<group>"; };
+		8A805D0C19604711009AF921 /* libsndfile.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libsndfile.a; path = thirdparty/sndfile/lib/libsndfile.a; sourceTree = "<group>"; };
+		8A805D0F19604786009AF921 /* OpenAL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenAL.framework; path = System/Library/Frameworks/OpenAL.framework; sourceTree = SDKROOT; };
+		8A805D1219604887009AF921 /* libFLAC.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libFLAC.a; path = thirdparty/sndfile/lib/libFLAC.a; sourceTree = "<group>"; };
+		8A805D1319604887009AF921 /* libogg.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libogg.a; path = thirdparty/sndfile/lib/libogg.a; sourceTree = "<group>"; };
+		8A805D1419604887009AF921 /* libvorbis.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libvorbis.a; path = thirdparty/sndfile/lib/libvorbis.a; sourceTree = "<group>"; };
+		8A805D1B196048EB009AF921 /* libvorbisenc.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libvorbisenc.a; path = thirdparty/sndfile/lib/libvorbisenc.a; sourceTree = "<group>"; };
 		8A80DBE417ABB57000917483 /* strfhelp.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = strfhelp.o; sourceTree = "<group>"; };
 		8A80DBE617ABB57000917483 /* actor.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = actor.txt; sourceTree = "<group>"; };
 		8A80DBE817ABB57000917483 /* chexammo.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = chexammo.txt; sourceTree = "<group>"; };
@@ -3569,14 +3603,21 @@
 				8A1D33B3154D6EEF00BA2C16 /* CoreAudio.framework in Frameworks */,
 				8A1D33A8154D6EC000BA2C16 /* CoreMIDI.framework in Frameworks */,
 				8A9F547514BB0F2900F3369B /* IOKit.framework in Frameworks */,
+				8A805D1019604786009AF921 /* OpenAL.framework in Frameworks */,
 				8A9F547614BB0F2900F3369B /* OpenGL.framework in Frameworks */,
 				8A9F547714BB0F2900F3369B /* libbz2.dylib in Frameworks */,
 				8A1D33E7154D6FD200BA2C16 /* libiconv.dylib in Frameworks */,
 				8A9F547814BB0F2900F3369B /* libz.dylib in Frameworks */,
 				8A9F547914BB0F2900F3369B /* libfmodex.dylib in Frameworks */,
+				8A805D18196048B1009AF921 /* libFLAC.a in Frameworks */,
 				8A1D337E154D6E1300BA2C16 /* libfluidsynth.a in Frameworks */,
 				8A1D33E2154D6F8900BA2C16 /* libglib-2.0.a in Frameworks */,
 				8A1D33EF154D702000BA2C16 /* libintl.a in Frameworks */,
+				8A805D05196046FE009AF921 /* libmpg123.a in Frameworks */,
+				8A805D19196048B5009AF921 /* libogg.a in Frameworks */,
+				8A805D0D19604711009AF921 /* libsndfile.a in Frameworks */,
+				8A805D1A196048B7009AF921 /* libvorbis.a in Frameworks */,
+				8A805D1C196048F2009AF921 /* libvorbisenc.a in Frameworks */,
 				8A9F547B14BB0F2900F3369B /* libjpeg_gzdoom.a in Frameworks */,
 				8A9F547C14BB0F2900F3369B /* liblzma_gzdoom.a in Frameworks */,
 				8A9F547D14BB0F2900F3369B /* libgme_gzdoom.a in Frameworks */,
@@ -3621,15 +3662,22 @@
 				8A1D33BF154D6F1800BA2C16 /* CoreAudio.framework in Frameworks */,
 				8A1D33C0154D6F1800BA2C16 /* CoreMIDI.framework in Frameworks */,
 				8A74F38F13925284001F54B0 /* IOKit.framework in Frameworks */,
+				8A805D1119604796009AF921 /* OpenAL.framework in Frameworks */,
 				8A74F2A2139235E0001F54B0 /* OpenGL.framework in Frameworks */,
 				8AF2794A1390F0C20095D9A0 /* libbz2.dylib in Frameworks */,
 				8A1D33E8154D6FF900BA2C16 /* libiconv.dylib in Frameworks */,
 				8AF27A491390F4910095D9A0 /* libz.dylib in Frameworks */,
 				8A74F2BA1392360F001F54B0 /* libfmodex.dylib in Frameworks */,
 				8AF62EBE142F25D0003F3556 /* libSDL_gzdoom.a in Frameworks */,
+				8A805D17196048AC009AF921 /* libFLAC.a in Frameworks */,
 				8A1D337F154D6E2300BA2C16 /* libfluidsynth.a in Frameworks */,
 				8A1D33E3154D6F8900BA2C16 /* libglib-2.0.a in Frameworks */,
 				8A1D33F1154D702000BA2C16 /* libintl.a in Frameworks */,
+				8A805D06196046FE009AF921 /* libmpg123.a in Frameworks */,
+				8A805D16196048A5009AF921 /* libogg.a in Frameworks */,
+				8A805D0E19604711009AF921 /* libsndfile.a in Frameworks */,
+				8A805D15196048A3009AF921 /* libvorbis.a in Frameworks */,
+				8A805D1D196048F6009AF921 /* libvorbisenc.a in Frameworks */,
 				8AC81C411391321300F49DC3 /* libjpeg_gzdoom.a in Frameworks */,
 				8AC81C421391321300F49DC3 /* liblzma_gzdoom.a in Frameworks */,
 				8AC81C431391321300F49DC3 /* libgme_gzdoom.a in Frameworks */,
@@ -3714,14 +3762,21 @@
 				8A1D33B2154D6EEF00BA2C16 /* CoreAudio.framework */,
 				8A1D33A7154D6EC000BA2C16 /* CoreMIDI.framework */,
 				8A74F38E13925284001F54B0 /* IOKit.framework */,
+				8A805D0F19604786009AF921 /* OpenAL.framework */,
 				8A74F2A1139235E0001F54B0 /* OpenGL.framework */,
 				8AF279491390F0C20095D9A0 /* libbz2.dylib */,
 				8A1D33E6154D6FD200BA2C16 /* libiconv.dylib */,
 				8AF27A461390F47C0095D9A0 /* libz.dylib */,
 				8A74F2B91392360F001F54B0 /* libfmodex.dylib */,
+				8A805D1219604887009AF921 /* libFLAC.a */,
 				8A1D337D154D6E0700BA2C16 /* libfluidsynth.a */,
 				8A1D33E1154D6F8900BA2C16 /* libglib-2.0.a */,
 				8A1D33ED154D702000BA2C16 /* libintl.a */,
+				8A805D04196046FE009AF921 /* libmpg123.a */,
+				8A805D1319604887009AF921 /* libogg.a */,
+				8A805D0C19604711009AF921 /* libsndfile.a */,
+				8A805D1419604887009AF921 /* libvorbis.a */,
+				8A805D1B196048EB009AF921 /* libvorbisenc.a */,
 			);
 			name = Dependencies;
 			sourceTree = "<group>";
@@ -6510,6 +6565,7 @@
 		8AF27F55139126C00095D9A0 /* sound */ = {
 			isa = PBXGroup;
 			children = (
+				8A517FA919600F4400FAAB33 /* efx.h */,
 				8AF27F56139126C00095D9A0 /* fmod_wrap.h */,
 				8AF27F57139126C00095D9A0 /* fmodsound.cpp */,
 				8AF27F58139126C00095D9A0 /* fmodsound.h */,
@@ -6519,6 +6575,8 @@
 				8AF27F5C139126C00095D9A0 /* i_sound.cpp */,
 				8AF27F5D139126C00095D9A0 /* i_sound.h */,
 				8AF27F5E139126C00095D9A0 /* i_soundinternal.h */,
+				8A517FAA19600F4400FAAB33 /* mpg123_decoder.cpp */,
+				8A517FAB19600F4400FAAB33 /* mpg123_decoder.h */,
 				8AF27F5F139126C00095D9A0 /* music_cd.cpp */,
 				8AF27F60139126C00095D9A0 /* music_dumb.cpp */,
 				8AF27F61139126C00095D9A0 /* music_fluidsynth_mididevice.cpp */,
@@ -6536,6 +6594,10 @@
 				8AF27F6D139126C00095D9A0 /* music_timidity_mididevice.cpp */,
 				8AF27F6E139126C00095D9A0 /* music_win_mididevice.cpp */,
 				8AF27F6F139126C00095D9A0 /* music_xmi_midiout.cpp */,
+				8A517FAC19600F4400FAAB33 /* oalsound.cpp */,
+				8A517FAD19600F4400FAAB33 /* oalsound.h */,
+				8A517FAE19600F4400FAAB33 /* sndfile_decoder.cpp */,
+				8A517FAF19600F4400FAAB33 /* sndfile_decoder.h */,
 			);
 			path = sound;
 			sourceTree = "<group>";
@@ -7328,6 +7390,7 @@
 				8A9F541614BB0F2900F3369B /* fmodsound.cpp in Sources */,
 				8A9F541714BB0F2900F3369B /* i_music.cpp in Sources */,
 				8A9F541814BB0F2900F3369B /* i_sound.cpp in Sources */,
+				8A517FB519600F7000FAAB33 /* mpg123_decoder.cpp in Sources */,
 				8A9F541914BB0F2900F3369B /* music_cd.cpp in Sources */,
 				8A9F541A14BB0F2900F3369B /* music_dumb.cpp in Sources */,
 				8A9F541B14BB0F2900F3369B /* music_fluidsynth_mididevice.cpp in Sources */,
@@ -7344,6 +7407,8 @@
 				8A9F542614BB0F2900F3369B /* music_stream.cpp in Sources */,
 				8A9F542714BB0F2900F3369B /* music_timidity_mididevice.cpp in Sources */,
 				8A9F542914BB0F2900F3369B /* music_xmi_midiout.cpp in Sources */,
+				8A517FB719600F7F00FAAB33 /* oalsound.cpp in Sources */,
+				8A517FB919600F8E00FAAB33 /* sndfile_decoder.cpp in Sources */,
 				8A9F543214BB0F2900F3369B /* anim_switches.cpp in Sources */,
 				8A9F543314BB0F2900F3369B /* animations.cpp in Sources */,
 				8A9F543414BB0F2900F3369B /* automaptexture.cpp in Sources */,
@@ -7951,6 +8016,7 @@
 				8AF2817D139126C10095D9A0 /* fmodsound.cpp in Sources */,
 				8AF2817E139126C10095D9A0 /* i_music.cpp in Sources */,
 				8AF2817F139126C10095D9A0 /* i_sound.cpp in Sources */,
+				8A517FB619600F7500FAAB33 /* mpg123_decoder.cpp in Sources */,
 				8AF28180139126C10095D9A0 /* music_cd.cpp in Sources */,
 				8AF28181139126C10095D9A0 /* music_dumb.cpp in Sources */,
 				8AF28182139126C10095D9A0 /* music_fluidsynth_mididevice.cpp in Sources */,
@@ -7967,6 +8033,8 @@
 				8AF2818D139126C10095D9A0 /* music_stream.cpp in Sources */,
 				8AF2818E139126C10095D9A0 /* music_timidity_mididevice.cpp in Sources */,
 				8AF28190139126C10095D9A0 /* music_xmi_midiout.cpp in Sources */,
+				8A517FB819600F8700FAAB33 /* oalsound.cpp in Sources */,
+				8A517FBA19600F9200FAAB33 /* sndfile_decoder.cpp in Sources */,
 				8AF28199139126C10095D9A0 /* anim_switches.cpp in Sources */,
 				8AF2819A139126C10095D9A0 /* animations.cpp in Sources */,
 				8AF2819B139126C10095D9A0 /* automaptexture.cpp in Sources */,
