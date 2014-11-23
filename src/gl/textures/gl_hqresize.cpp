@@ -36,13 +36,14 @@
 
 #ifdef __APPLE__
 #	include <AvailabilityMacros.h>
-#	if MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
+#	if MAC_OS_X_VERSION_MAX_ALLOWED >= 1060
 #		define GZ_USE_LIBDISPATCH
-#	endif // MAC_OS_X_VERSION_MIN_REQUIRED >= 1060
+#	endif // MAC_OS_X_VERSION_MAX_ALLOWED >= 1060
 #endif // __APPLE__
 
 #ifdef GZ_USE_LIBDISPATCH
 #include <dispatch/dispatch.h>
+#include "cocoa/i_osversion.h"
 #endif // GZ_USE_LIBDISPATCH
 
 #include "gl/system/gl_system.h"
@@ -254,7 +255,8 @@ static void xbrzNx(const size_t scale, const size_t width, const size_t height, 
 	const size_t thresholdWidth  = gl_texture_hqresize_mt_width;
 	const size_t thresholdHeight = gl_texture_hqresize_mt_height;
 
-	if (gl_texture_hqresize_multithread
+	if (darwinVersion.major >= 10
+		&& gl_texture_hqresize_multithread
 		&& width  > thresholdWidth
 		&& height > thresholdHeight)
 	{
