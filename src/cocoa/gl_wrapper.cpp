@@ -333,7 +333,7 @@ typedef Texture<GL_TEXTURE_2D> Texture2D;
 class RenderTarget : public Resource<RenderTarget, UnbindToPrevious>
 {
 public:
-	RenderTarget(const GLsizei width, const GLsizei height, const RenderTarget* const sharedDepth = NULL);
+	RenderTarget(const GLsizei width, const GLsizei height);
 	~RenderTarget();
 
 	static void DoBind(const GLuint resourceID);
@@ -346,35 +346,6 @@ private:
 	Texture2D m_depthStencil;
 
 }; // class RenderTarget
-
-
-// ---------------------------------------------------------------------------
-
-
-class PostProcess
-{
-public:
-	explicit PostProcess(const RenderTarget* const sharedDepth = NULL);
-	~PostProcess();
-
-	void Init(const char* const shaderName, const GLsizei width, const GLsizei height);
-	void Release();
-
-	bool IsInitialized() const;
-
-	void Start();
-	void Finish();
-
-private:
-	GLsizei m_width;
-	GLsizei m_height;
-
-	RenderTarget*  m_renderTarget;
-	FShader*       m_shader;
-
-	const RenderTarget* m_sharedDepth;
-
-}; // class PostProcess
 
 
 // ---------------------------------------------------------------------------
@@ -405,8 +376,6 @@ public:
 
 	static BackBuffer* GetInstance();
 
-	PostProcess& GetPostProcess();
-
 
 	void GetGammaTable(      uint16_t* red,       uint16_t* green,       uint16_t* blue);
 	void SetGammaTable(const uint16_t* red, const uint16_t* green, const uint16_t* blue);
@@ -423,8 +392,6 @@ private:
 
 	static const size_t GAMMA_TABLE_SIZE = 256;
 	uint32_t            m_gammaTable[GAMMA_TABLE_SIZE];
-	
-	PostProcess         m_postProcess;
 	
 	void DrawRenderTarget();
 	
@@ -616,26 +583,19 @@ bool BoundTextureSaveAsPNG(const GLenum target, const char* const path)
 // ---------------------------------------------------------------------------
 
 
-RenderTarget::RenderTarget(const GLsizei width, const GLsizei height, const RenderTarget* const sharedDepth)
+RenderTarget::RenderTarget(const GLsizei width, const GLsizei height)
 {
 	m_color.SetImageData(TEXTURE_FORMAT_COLOR_RGBA, width, height, NULL);
 	m_color.SetFilter(TEXTURE_FILTER_NEAREST);
 
-	if (NULL == sharedDepth)
-	{
-		m_depthStencil.SetImageData(TEXTURE_FORMAT_DEPTH_STENCIL, width, height, NULL);
-		m_depthStencil.SetFilter(TEXTURE_FILTER_NEAREST);
-	}
-
-	const GLuint depthStencilID = NULL == sharedDepth
-		? m_depthStencil.m_ID
-		: sharedDepth->m_depthStencil.m_ID;
+	m_depthStencil.SetImageData(TEXTURE_FORMAT_DEPTH_STENCIL, width, height, NULL);
+	m_depthStencil.SetFilter(TEXTURE_FILTER_NEAREST);
 
 	glGenFramebuffers(1, &m_ID);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_ID);
 
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,        GL_TEXTURE_2D, m_color.m_ID,   0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depthStencilID, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,        GL_TEXTURE_2D, m_color.m_ID,        0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_depthStencil.m_ID, 0);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -660,98 +620,6 @@ void RenderTarget::DoBind(const GLuint resourceID)
 GLuint RenderTarget::GetBoundName()
 {
 	return GL_FRAMEBUFFER_BINDING;
-}
-
-
-// ---------------------------------------------------------------------------
-
-
-PostProcess::PostProcess(const RenderTarget* const sharedDepth)
-: m_width       (0   )
-, m_height      (0   )
-, m_renderTarget(NULL)
-, m_shader      (NULL)
-, m_sharedDepth (sharedDepth)
-{
-
-}
-
-PostProcess::~PostProcess()
-{
-	Release();
-}
-
-
-void PostProcess::Init(const char* const shaderName, const GLsizei width, const GLsizei height)
-{
-	assert(NULL != shaderName);
-	assert(width  > 0);
-	assert(height > 0);
-
-	Release();
-
-	m_width  = width;
-	m_height = height;
-
-	m_renderTarget = new RenderTarget(m_width, m_height, m_sharedDepth);
-
-	m_shader = new FShader();
-	m_shader->Load("PostProcessing", "shaders/glsl/main.vp", shaderName, NULL, "");
-
-	const GLuint program = m_shader->GetHandle();
-
-	glUseProgram(program);
-	glUniform1i(glGetUniformLocation(program, "sampler0"), 0);
-	glUniform2f(glGetUniformLocation(program, "resolution"),
-		static_cast<GLfloat>(width), static_cast<GLfloat>(height));
-	glUseProgram(0);
-}
-
-void PostProcess::Release()
-{
-	if (NULL != m_shader)
-	{
-		delete m_shader;
-		m_shader = NULL;
-	}
-
-	if (NULL != m_renderTarget)
-	{
-		delete m_renderTarget;
-		m_renderTarget = NULL;
-	}
-
-	m_width  = 0;
-	m_height = 0;
-}
-
-
-bool PostProcess::IsInitialized() const
-{
-	// TODO: check other members?
-	return NULL != m_renderTarget;
-}
-
-
-void PostProcess::Start()
-{
-	assert(NULL != m_renderTarget);
-
-	m_renderTarget->Bind();
-}
-
-void PostProcess::Finish()
-{
-	m_renderTarget->Unbind();
-
-	Texture2D& colorTexture = m_renderTarget->GetColorTexture();
-
-	glActiveTexture(GL_TEXTURE0);
-	colorTexture.Bind();
-
-	m_shader->Bind(0.0f);
-	colorTexture.Draw2D(m_width, m_height);
-	glUseProgram(0);
 }
 
 
@@ -784,7 +652,6 @@ const uint32_t GAMMA_TABLE_ALPHA = 0xFF000000;
 BackBuffer::BackBuffer(void* hMonitor, int width, int height, int bits, int refreshHz, bool fullscreen)
 : OpenGLFrameBuffer(hMonitor, width, height, bits, refreshHz, fullscreen)
 , m_renderTarget(width, height)
-, m_postProcess(&m_renderTarget)
 {
 	s_instance = this;
 
@@ -870,11 +737,6 @@ void BackBuffer::GetScreenshotBuffer(const BYTE*& buffer, int& pitch, ESSType& c
 BackBuffer* BackBuffer::GetInstance()
 {
 	return s_instance;
-}
-
-PostProcess& BackBuffer::GetPostProcess()
-{
-	return m_postProcess;
 }
 
 
