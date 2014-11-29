@@ -42,6 +42,7 @@
 #include "gl/system/gl_framebuffer.h"
 #include "gl/system/gl_interface.h"
 #include "gl/shaders/gl_shader.h"
+#include "gl/textures/gl_hwtexture.h"
 #include "gl/utility/gl_clock.h"
 
 
@@ -186,150 +187,6 @@ private:
 // ---------------------------------------------------------------------------
 
 
-enum TextureFormat
-{
-	TEXTURE_FORMAT_COLOR_RGBA,
-	TEXTURE_FORMAT_DEPTH_STENCIL
-};
-
-enum TextureFilter
-{
-	TEXTURE_FILTER_NEAREST,
-	TEXTURE_FILTER_LINEAR
-};
-
-
-GLint GetInternalFormat(const TextureFormat format);
-GLint GetFormat(const TextureFormat format);
-GLint GetDataType(const TextureFormat format);
-
-GLint GetFilter(const TextureFilter filter);
-
-void BoundTextureSetFilter(const GLenum target, const GLint filter);
-void BoundTextureDraw2D(const GLsizei width, const GLsizei height);
-bool BoundTextureSaveAsPNG(const GLenum target, const char* const path);
-
-
-template <GLenum target>
-inline GLenum GetTextureBoundName();
-
-template <>
-inline GLenum GetTextureBoundName<GL_TEXTURE_1D>()
-{
-	return GL_TEXTURE_BINDING_1D;
-}
-
-template <>
-inline GLenum GetTextureBoundName<GL_TEXTURE_2D>()
-{
-	return GL_TEXTURE_BINDING_2D;
-}
-
-
-template <GLenum target>
-struct TextureImageHandler
-{
-	static void DoSetImageData(const TextureFormat format, const GLsizei width, const GLsizei height, const void* const data);
-};
-
-template <>
-struct TextureImageHandler<GL_TEXTURE_1D>
-{
-	static void DoSetImageData(const TextureFormat format, const GLsizei width, const GLsizei, const void* const data)
-	{
-		glTexImage1D(GL_TEXTURE_1D, 0, GetInternalFormat(format),
-			width, 0, GetFormat(format), GetDataType(format), data);
-	}
-};
-
-template <>
-struct TextureImageHandler<GL_TEXTURE_2D>
-{
-	static void DoSetImageData(const TextureFormat format, const GLsizei width, const GLsizei height, const void* const data)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GetInternalFormat(format),
-			width, height, 0, GetFormat(format), GetDataType(format), data);
-	}
-};
-
-
-template <GLenum target>
-class Texture : public Resource<Texture<target>, NoUnbind>,
-private TextureImageHandler<target>
-{
-	friend class RenderTarget;
-
-public:
-	Texture()
-	{
-		glGenTextures(1, &this->m_ID);
-	}
-
-	~Texture()
-	{
-		glDeleteTextures(1, &this->m_ID);
-	}
-
-
-	static void DoBind(const GLuint resourceID)
-	{
-		glBindTexture(target, resourceID);
-	}
-
-	static GLenum GetBoundName()
-	{
-		return GetTextureBoundName<target>();
-	}
-
-
-	void SetFilter(const TextureFilter filter)
-	{
-		this->Bind();
-
-		BoundTextureSetFilter(target, GetFilter(filter));
-
-		this->Unbind();
-	}
-
-	void SetImageData(const TextureFormat format, const GLsizei width, const GLsizei height, const void* const data)
-	{
-		this->Bind();
-		this->DoSetImageData(format, width, height, data);
-		this->Unbind();
-	}
-
-
-	void Draw2D(const GLsizei width, const GLsizei height)
-	{
-		this->Bind();
-
-		BoundTextureDraw2D(width, height);
-
-		this->Unbind();
-	}
-
-
-	bool SaveAsPNG(const char* const path)
-	{
-		this->Bind();
-
-		const bool result = BoundTextureSaveAsPNG(target, path);
-
-		this->Unbind();
-
-		return result;
-	}
-
-}; // class Texture
-
-
-typedef Texture<GL_TEXTURE_1D> Texture1D;
-typedef Texture<GL_TEXTURE_2D> Texture2D;
-
-
-// ---------------------------------------------------------------------------
-
-
 class RenderTarget : public Resource<RenderTarget, UnbindToPrevious>
 {
 public:
@@ -339,11 +196,13 @@ public:
 	static void DoBind(const GLuint resourceID);
 	static GLenum GetBoundName();
 
-	Texture2D& GetColorTexture();
+	FHardwareTexture& GetColorTexture()
+	{
+		return m_texture;
+	}
 
 private:
-	Texture2D m_color;
-	Texture2D m_depthStencil;
+	FHardwareTexture m_texture;
 
 }; // class RenderTarget
 
@@ -388,7 +247,7 @@ private:
 	RenderTarget        m_renderTarget;
 	FShader             m_gammaProgram;
 
-	Texture1D           m_gammaTexture;
+	FHardwareTexture    m_gammaTexture;
 
 	static const size_t GAMMA_TABLE_SIZE = 256;
 	uint32_t            m_gammaTable[GAMMA_TABLE_SIZE];
@@ -399,72 +258,6 @@ private:
 	
 
 // ---------------------------------------------------------------------------
-
-
-GLint GetInternalFormat(const TextureFormat format)
-{
-	switch (format)
-	{
-	case TEXTURE_FORMAT_COLOR_RGBA:
-		return GL_RGBA8;
-
-	case TEXTURE_FORMAT_DEPTH_STENCIL:
-		return GL_DEPTH24_STENCIL8;
-
-	default:
-		assert(!"Unknown texture format");
-		return 0;
-	}
-}
-
-GLint GetFormat(const TextureFormat format)
-{
-	switch (format)
-	{
-	case TEXTURE_FORMAT_COLOR_RGBA:
-		return GL_RGBA;
-
-	case TEXTURE_FORMAT_DEPTH_STENCIL:
-		return GL_DEPTH_STENCIL;
-
-	default:
-		assert(!"Unknown texture format");
-		return 0;
-	}
-}
-
-GLint GetDataType(const TextureFormat format)
-{
-	switch (format)
-	{
-	case TEXTURE_FORMAT_COLOR_RGBA:
-		return GL_UNSIGNED_BYTE;
-
-	case TEXTURE_FORMAT_DEPTH_STENCIL:
-		return GL_UNSIGNED_INT_24_8;
-
-	default:
-		assert(!"Unknown texture format");
-		return 0;
-	}
-}
-
-
-GLint GetFilter(const TextureFilter filter)
-{
-	switch (filter)
-	{
-	case TEXTURE_FILTER_NEAREST:
-		return GL_NEAREST;
-
-	case TEXTURE_FILTER_LINEAR:
-		return GL_LINEAR;
-
-	default:
-		assert(!"Unknown texture filter");
-		return 0;
-	}
-}
 
 
 void BoundTextureSetFilter(const GLenum target, const GLint filter)
@@ -584,31 +377,19 @@ bool BoundTextureSaveAsPNG(const GLenum target, const char* const path)
 
 
 RenderTarget::RenderTarget(const GLsizei width, const GLsizei height)
+: m_texture(width, height, false, false, true, true)
 {
-	m_color.SetImageData(TEXTURE_FORMAT_COLOR_RGBA, width, height, NULL);
-	m_color.SetFilter(TEXTURE_FILTER_NEAREST);
-
-	m_depthStencil.SetImageData(TEXTURE_FORMAT_DEPTH_STENCIL, width, height, NULL);
-	m_depthStencil.SetFilter(TEXTURE_FILTER_NEAREST);
+	m_texture.CreateTexture(NULL, width, height, false, 0, 0);
 
 	glGenFramebuffers(1, &m_ID);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_ID);
-
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,        GL_TEXTURE_2D, m_color.m_ID,        0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_depthStencil.m_ID, 0);
-
+	m_texture.BindToFrameBuffer();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 RenderTarget::~RenderTarget()
 {
 	glDeleteFramebuffers(1, &m_ID);
-}
-
-
-Texture2D& RenderTarget::GetColorTexture()
-{
-	return m_color;
 }
 
 
@@ -652,6 +433,7 @@ const uint32_t GAMMA_TABLE_ALPHA = 0xFF000000;
 BackBuffer::BackBuffer(void* hMonitor, int width, int height, int bits, int refreshHz, bool fullscreen)
 : OpenGLFrameBuffer(hMonitor, width, height, bits, refreshHz, fullscreen)
 , m_renderTarget(width, height)
+, m_gammaTexture(GAMMA_TABLE_SIZE, 1, false, false, true, true)
 {
 	s_instance = this;
 
@@ -664,8 +446,9 @@ BackBuffer::BackBuffer(void* hMonitor, int width, int height, int bits, int refr
 		m_gammaTable[i] = GAMMA_TABLE_ALPHA + (i << 16) + (i << 8) + i;
 	}
 
-	m_gammaTexture.SetFilter(TEXTURE_FILTER_NEAREST);
-	m_gammaTexture.SetImageData(TEXTURE_FORMAT_COLOR_RGBA, 256, 1, m_gammaTable);
+	m_gammaTexture.CreateTexture(
+		reinterpret_cast<unsigned char*>(m_gammaTable),
+		GAMMA_TABLE_SIZE, 1, false, 1, 0);
 
 	// Setup uniform samplers for gamma correction shader
 
@@ -744,13 +527,8 @@ void BackBuffer::DrawRenderTarget()
 {
 	m_renderTarget.Unbind();
 
-	Texture2D& colorTexture = m_renderTarget.GetColorTexture();
-
-	glActiveTexture(GL_TEXTURE0);
-	colorTexture.Bind();
-	glActiveTexture(GL_TEXTURE1);
-	m_gammaTexture.Bind();
-	glActiveTexture(GL_TEXTURE0);
+	m_renderTarget.GetColorTexture().Bind(0, 0);
+	m_gammaTexture.Bind(1, 0);
 
 	if (rbOpts.dirty)
 	{
@@ -765,7 +543,7 @@ void BackBuffer::DrawRenderTarget()
 	glViewport(rbOpts.shiftX, rbOpts.shiftY, rbOpts.width, rbOpts.height);
 
 	m_gammaProgram.Bind(0.0f);
-	colorTexture.Draw2D(Width, Height);
+	BoundTextureDraw2D(Width, Height);
 	glUseProgram(0);
 
 	glViewport(0, 0, Width, Height);
@@ -800,15 +578,17 @@ void BackBuffer::SetGammaTable(const uint16_t* red, const uint16_t* green, const
 		
 		m_gammaTable[i] = GAMMA_TABLE_ALPHA + (b << 16) + (g << 8) + r;
 	}
-	
-	m_gammaTexture.SetImageData(TEXTURE_FORMAT_COLOR_RGBA, 256, 1, m_gammaTable);
+
+	m_gammaTexture.CreateTexture(
+		reinterpret_cast<unsigned char*>(m_gammaTable),
+		GAMMA_TABLE_SIZE, 1, false, 1, 0);
 }
 
 void BackBuffer::SetSmoothPicture(const bool smooth)
 {
-	m_renderTarget.GetColorTexture().SetFilter(smooth
-		? TEXTURE_FILTER_LINEAR
-		: TEXTURE_FILTER_NEAREST);
+	FHardwareTexture& texture = m_renderTarget.GetColorTexture();
+	texture.Bind(0, 0);
+	BoundTextureSetFilter(GL_TEXTURE_2D, smooth ? GL_LINEAR : GL_NEAREST);
 }
 
 } // unnamed namespace
