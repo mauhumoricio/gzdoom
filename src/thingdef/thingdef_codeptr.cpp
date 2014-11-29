@@ -2354,18 +2354,33 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_SetTranslucent)
 // Fades the actor in
 //
 //===========================================================================
+
+enum FadeFlags
+{
+	FTF_REMOVE =	1 << 0,
+	FTF_CLAMP =		1 << 1,
+};
+
 DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FadeIn)
 {
 	ACTION_PARAM_START(1);
 	ACTION_PARAM_FIXED(reduce, 0);
+	ACTION_PARAM_INT(flags, 1);
 
 	if (reduce == 0)
 	{
-		reduce = FRACUNIT/10;
+		reduce = FRACUNIT / 10;
 	}
 	self->RenderStyle.Flags &= ~STYLEF_Alpha1;
 	self->alpha += reduce;
-	// Should this clamp alpha to 1.0?
+
+	if (self->alpha >= (FRACUNIT * 1))
+	{
+		if (flags & FTF_CLAMP)
+			self->alpha = (FRACUNIT * 1);
+		if (flags & FTF_REMOVE)
+			self->Destroy();
+	}
 }
 
 //===========================================================================
@@ -2379,7 +2394,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FadeOut)
 {
 	ACTION_PARAM_START(2);
 	ACTION_PARAM_FIXED(reduce, 0);
-	ACTION_PARAM_BOOL(remove, 1);
+	ACTION_PARAM_INT(flags, 1);
 
 	if (reduce == 0)
 	{
@@ -2387,9 +2402,12 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FadeOut)
 	}
 	self->RenderStyle.Flags &= ~STYLEF_Alpha1;
 	self->alpha -= reduce;
-	if (self->alpha <= 0 && remove)
+	if (self->alpha <= 0)
 	{
-		self->Destroy();
+		if (flags & FTF_CLAMP)
+			self->alpha = 0;
+		if (flags & FTF_REMOVE)
+			self->Destroy();
 	}
 }
 
@@ -2406,7 +2424,7 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FadeTo)
 	ACTION_PARAM_START(3);
 	ACTION_PARAM_FIXED(target, 0);
 	ACTION_PARAM_FIXED(amount, 1);
-	ACTION_PARAM_BOOL(remove, 2);
+	ACTION_PARAM_INT(flags, 2);
 
 	self->RenderStyle.Flags &= ~STYLEF_Alpha1;
 
@@ -2428,7 +2446,14 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_FadeTo)
 			self->alpha = target;
 		}
 	}
-	if (self->alpha == target && remove)
+	if (flags & FTF_CLAMP)
+	{
+		if (self->alpha > (FRACUNIT * 1))
+			self->alpha = (FRACUNIT * 1);
+		else if (self->alpha < 0)
+			self->alpha = 0;
+	}
+	if (self->alpha == target && (flags & FTF_REMOVE))
 	{
 		self->Destroy();
 	}
@@ -3736,11 +3761,17 @@ DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_CheckFlag)
 // A_RaiseMaster
 //
 //===========================================================================
-DEFINE_ACTION_FUNCTION(AActor, A_RaiseMaster)
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RaiseMaster)
 {
+	ACTION_PARAM_START(1);
+	ACTION_PARAM_BOOL(copy, 0);
+
 	if (self->master != NULL)
 	{
-		P_Thing_Raise(self->master);
+		if (copy)
+			P_Thing_Raise(self->master, self);
+		else
+			P_Thing_Raise(self->master, NULL);
 	}
 }
 
@@ -3749,8 +3780,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_RaiseMaster)
 // A_RaiseChildren
 //
 //===========================================================================
-DEFINE_ACTION_FUNCTION(AActor, A_RaiseChildren)
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RaiseChildren)
 {
+	ACTION_PARAM_START(1);
+	ACTION_PARAM_BOOL(copy, 0);
 	TThinkerIterator<AActor> it;
 	AActor *mo;
 
@@ -3758,7 +3791,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_RaiseChildren)
 	{
 		if (mo->master == self)
 		{
-			P_Thing_Raise(mo);
+			if (copy)
+				P_Thing_Raise(mo, self);
+			else
+				P_Thing_Raise(mo, NULL);
 		}
 	}
 }
@@ -3768,8 +3804,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_RaiseChildren)
 // A_RaiseSiblings
 //
 //===========================================================================
-DEFINE_ACTION_FUNCTION(AActor, A_RaiseSiblings)
+DEFINE_ACTION_FUNCTION_PARAMS(AActor, A_RaiseSiblings)
 {
+	ACTION_PARAM_START(1);
+	ACTION_PARAM_BOOL(copy, 0);
 	TThinkerIterator<AActor> it;
 	AActor *mo;
 
@@ -3779,7 +3817,10 @@ DEFINE_ACTION_FUNCTION(AActor, A_RaiseSiblings)
 		{
 			if (mo->master == self->master && mo != self)
 			{
-				P_Thing_Raise(mo);
+				if (copy)
+					P_Thing_Raise(mo, self);
+				else
+					P_Thing_Raise(mo, NULL);
 			}
 		}
 	}

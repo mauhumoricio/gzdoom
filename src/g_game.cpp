@@ -1128,11 +1128,8 @@ void G_Ticker ()
 	// check, not just the player's x position like BOOM.
 	DWORD rngsum = FRandom::StaticSumSeeds ();
 
-	if ((gametic % ticdup) == 0)
-	{
-		//Added by MC: For some of that bot stuff. The main bot function.
-		bglobal.Main (buf);
-	}
+	//Added by MC: For some of that bot stuff. The main bot function.
+	bglobal.Main ();
 
 	for (i = 0; i < MAXPLAYERS; i++)
 	{
@@ -1395,7 +1392,6 @@ void G_PlayerReborn (int player)
 
 	if (gamestate != GS_TITLELEVEL)
 	{
-
 		// [GRB] Give inventory specified in DECORATE
 		actor->GiveDefaultInventory ();
 		p->ReadyWeapon = p->PendingWeapon;
@@ -1406,6 +1402,7 @@ void G_PlayerReborn (int player)
 	{
 		botskill_t skill = p->Bot->skill;
 		p->Bot->Clear ();
+		p->Bot->player = p;
 		p->Bot->skill = skill;
 	}
 }
@@ -2639,7 +2636,7 @@ void G_DoPlayDemo (void)
 	{
 		FixPathSeperator (defdemoname);
 		DefaultExtension (defdemoname, ".lmp");
-		M_ReadFile (defdemoname, &demobuffer);
+		M_ReadFileMalloc (defdemoname, &demobuffer);
 	}
 	demo_p = demobuffer;
 

@@ -93,6 +93,8 @@
 		8A0304DE190D4238000BC6D7 /* LzmaEnc.c in Sources */ = {isa = PBXBuildFile; fileRef = 8A0304CC190D4215000BC6D7 /* LzmaEnc.c */; };
 		8A054ACE193B2A7400D7849E /* c_consolebuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A054ACC193B2A5300D7849E /* c_consolebuffer.cpp */; };
 		8A054ACF193B2A7700D7849E /* c_consolebuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A054ACC193B2A5300D7849E /* c_consolebuffer.cpp */; };
+		8A08C7CD1A29DAC300371DB4 /* nukedopl3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A08C7C61A29DAA600371DB4 /* nukedopl3.cpp */; };
+		8A08C7CE1A29DACD00371DB4 /* nukedopl3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A08C7C61A29DAA600371DB4 /* nukedopl3.cpp */; };
 		8A12DD10177D63F1006EE538 /* file_chasm_bin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A12DD08177D6379006EE538 /* file_chasm_bin.cpp */; };
 		8A12DD11177D6434006EE538 /* celtexture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A12DD0E177D638D006EE538 /* celtexture.cpp */; };
 		8A12DD12177D6456006EE538 /* celtexture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A12DD0E177D638D006EE538 /* celtexture.cpp */; };
@@ -122,13 +124,13 @@
 		8A3DA66D1547DB5100D1302A /* thingdef_function.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A3DA66C1547DB5100D1302A /* thingdef_function.cpp */; };
 		8A3DA66E1547DB5100D1302A /* thingdef_function.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A3DA66C1547DB5100D1302A /* thingdef_function.cpp */; };
 		8A42210D150A0458001D28A0 /* libhid_utilities_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A422108150A0420001D28A0 /* libhid_utilities_gzdoom.a */; };
-		8A6227A21A18E0C4004235B1 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A74F4661392532C001F54B0 /* Carbon.framework */; };
 		8A517FB519600F7000FAAB33 /* mpg123_decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAA19600F4400FAAB33 /* mpg123_decoder.cpp */; };
 		8A517FB619600F7500FAAB33 /* mpg123_decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAA19600F4400FAAB33 /* mpg123_decoder.cpp */; };
 		8A517FB719600F7F00FAAB33 /* oalsound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAC19600F4400FAAB33 /* oalsound.cpp */; };
 		8A517FB819600F8700FAAB33 /* oalsound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAC19600F4400FAAB33 /* oalsound.cpp */; };
 		8A517FB919600F8E00FAAB33 /* sndfile_decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAE19600F4400FAAB33 /* sndfile_decoder.cpp */; };
 		8A517FBA19600F9200FAAB33 /* sndfile_decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAE19600F4400FAAB33 /* sndfile_decoder.cpp */; };
+		8A6227A21A18E0C4004235B1 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A74F4661392532C001F54B0 /* Carbon.framework */; };
 		8A651FF6191E69EB009DB9CD /* glew.c in Sources */ = {isa = PBXBuildFile; fileRef = 8A651FF5191E69E3009DB9CD /* glew.c */; };
 		8A651FFB191E6A39009DB9CD /* libglew_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A651FED191E6988009DB9CD /* libglew_gzdoom.a */; };
 		8A651FFC191E6A3E009DB9CD /* libglew_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A651FED191E6988009DB9CD /* libglew_gzdoom.a */; };
@@ -1398,6 +1400,8 @@
 		8A0304D0190D4215000BC6D7 /* Types.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Types.h; sourceTree = "<group>"; };
 		8A054ACC193B2A5300D7849E /* c_consolebuffer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = c_consolebuffer.cpp; sourceTree = "<group>"; };
 		8A054ACD193B2A5300D7849E /* c_consolebuffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = c_consolebuffer.h; sourceTree = "<group>"; };
+		8A08C7C61A29DAA600371DB4 /* nukedopl3.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = nukedopl3.cpp; sourceTree = "<group>"; };
+		8A08C7C71A29DAA600371DB4 /* nukedopl3.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = nukedopl3.h; sourceTree = "<group>"; };
 		8A12DD08177D6379006EE538 /* file_chasm_bin.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = file_chasm_bin.cpp; sourceTree = "<group>"; };
 		8A12DD0E177D638D006EE538 /* celtexture.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = celtexture.cpp; sourceTree = "<group>"; };
 		8A1D337D154D6E0700BA2C16 /* libfluidsynth.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfluidsynth.a; path = thirdparty/fluidsynth/lib/libfluidsynth.a; sourceTree = "<group>"; };
@@ -6482,6 +6486,8 @@
 				8AF27EB4139126C00095D9A0 /* music_opl_mididevice.cpp */,
 				8AF27EB5139126C00095D9A0 /* music_opldumper_mididevice.cpp */,
 				8AF27EB6139126C00095D9A0 /* muslib.h */,
+				8A08C7C61A29DAA600371DB4 /* nukedopl3.cpp */,
+				8A08C7C71A29DAA600371DB4 /* nukedopl3.h */,
 				8AA9A1941660E80A007F75A4 /* opl.h */,
 				8AF27EB7139126C00095D9A0 /* opl_mus_player.cpp */,
 				8AF27EB8139126C00095D9A0 /* opl_mus_player.h */,
@@ -7358,6 +7364,7 @@
 				8A9F53C214BB0F2900F3369B /* mlopl_io.cpp in Sources */,
 				8A9F53C314BB0F2900F3369B /* music_opl_mididevice.cpp in Sources */,
 				8A9F53C414BB0F2900F3369B /* music_opldumper_mididevice.cpp in Sources */,
+				8A08C7CD1A29DAC300371DB4 /* nukedopl3.cpp in Sources */,
 				8A9F53C514BB0F2900F3369B /* opl_mus_player.cpp in Sources */,
 				8AA9A1971660E80A007F75A4 /* OPL3.cpp in Sources */,
 				8A9F546614BB0F2900F3369B /* colormaps.cpp in Sources */,
@@ -7978,6 +7985,7 @@
 				8AF28122139126C00095D9A0 /* mlopl_io.cpp in Sources */,
 				8AF28123139126C00095D9A0 /* music_opl_mididevice.cpp in Sources */,
 				8AF28124139126C00095D9A0 /* music_opldumper_mididevice.cpp in Sources */,
+				8A08C7CE1A29DACD00371DB4 /* nukedopl3.cpp in Sources */,
 				8AF28125139126C00095D9A0 /* opl_mus_player.cpp in Sources */,
 				8AA9A1981660E8DC007F75A4 /* OPL3.cpp in Sources */,
 				497C93EB13C5A6F800E6B4A8 /* colormaps.cpp in Sources */,
