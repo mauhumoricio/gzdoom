@@ -107,6 +107,7 @@ void FGLRenderer::Initialize()
 
 	mVBO = new FFlatVertexBuffer;
 	mFBID = 0;
+	mOldFBID = 0;
 	SetupLevel();
 	mShaderManager = new FShaderManager;
 	//mThreadManager = new FGLThreadManager;
@@ -215,6 +216,7 @@ bool FGLRenderer::StartOffscreen()
 	if (gl.flags & RFL_FRAMEBUFFER)
 	{
 		if (mFBID == 0) glGenFramebuffers(1, &mFBID);
+		glGetIntegerv(GL_FRAMEBUFFER_BINDING, &mOldFBID);
 		glBindFramebuffer(GL_FRAMEBUFFER, mFBID);
 		return true;
 	}
@@ -231,7 +233,7 @@ void FGLRenderer::EndOffscreen()
 {
 	if (gl.flags & RFL_FRAMEBUFFER)
 	{
-		glBindFramebuffer(GL_FRAMEBUFFER, 0); 
+		glBindFramebuffer(GL_FRAMEBUFFER, mOldFBID); 
 	}
 }
 
