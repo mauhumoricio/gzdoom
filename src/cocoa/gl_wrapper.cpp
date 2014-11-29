@@ -269,7 +269,7 @@ RenderTarget::RenderTarget(const GLsizei width, const GLsizei height)
 , m_oldID(0)
 , m_texture(width, height, false, false, true, true)
 {
-	glGenFramebuffers(1, &m_ID);
+	glGenFramebuffersEXT(1, &m_ID);
 
 	Bind();
 	m_texture.CreateTexture(NULL, width, height, false, 0, 0);
@@ -279,7 +279,7 @@ RenderTarget::RenderTarget(const GLsizei width, const GLsizei height)
 
 RenderTarget::~RenderTarget()
 {
-	glDeleteFramebuffers(1, &m_ID);
+	glDeleteFramebuffersEXT(1, &m_ID);
 }
 
 
@@ -289,14 +289,14 @@ void RenderTarget::Bind()
 
 	if (m_ID != boundID)
 	{
-		glBindFramebuffer(GL_FRAMEBUFFER, m_ID);
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_ID);
 		m_oldID = boundID;
 	}
 }
 
 void RenderTarget::Unbind()
 {
-	glBindFramebuffer(GL_FRAMEBUFFER, m_oldID);
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_oldID);
 	m_oldID = 0;
 }
 
@@ -304,7 +304,7 @@ void RenderTarget::Unbind()
 GLuint RenderTarget::GetBoundID()
 {
 	GLint result;
-	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &result);
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &result);
 
 	return static_cast<GLuint>(result);
 }

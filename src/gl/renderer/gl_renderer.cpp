@@ -125,7 +125,7 @@ FGLRenderer::~FGLRenderer()
 	if (glpart) delete glpart;
 	if (mirrortexture) delete mirrortexture;
 	if (gllight) delete gllight;
-	if (mFBID != 0) glDeleteFramebuffers(1, &mFBID);
+	if (mFBID != 0) glDeleteFramebuffersEXT(1, &mFBID);
 }
 
 //===========================================================================
@@ -215,9 +215,9 @@ bool FGLRenderer::StartOffscreen()
 {
 	if (gl.flags & RFL_FRAMEBUFFER)
 	{
-		if (mFBID == 0) glGenFramebuffers(1, &mFBID);
-		glGetIntegerv(GL_FRAMEBUFFER_BINDING, &mOldFBID);
-		glBindFramebuffer(GL_FRAMEBUFFER, mFBID);
+		if (mFBID == 0) glGenFramebuffersEXT(1, &mFBID);
+		glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &mOldFBID);
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, mFBID);
 		return true;
 	}
 	return false;
@@ -233,7 +233,7 @@ void FGLRenderer::EndOffscreen()
 {
 	if (gl.flags & RFL_FRAMEBUFFER)
 	{
-		glBindFramebuffer(GL_FRAMEBUFFER, mOldFBID); 
+		glBindFramebufferEXT(GL_FRAMEBUFFER, mOldFBID);
 	}
 }
 
