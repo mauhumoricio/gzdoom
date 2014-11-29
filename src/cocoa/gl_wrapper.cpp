@@ -70,131 +70,14 @@ private:
 // ---------------------------------------------------------------------------
 
 
-template <typename T>
-class NoUnbind : private NonCopyable
-{
-public:
-	void BindImpl(const GLuint resourceID)
-	{
-		T::DoBind(resourceID);
-	}
-
-	void UnbindImpl()
-	{
-	}
-};
-
-
-template <typename T>
-class UnbindToDefault : private NonCopyable
-{
-public:
-	void BindImpl(const GLuint resourceID)
-	{
-		T::DoBind(resourceID);
-	}
-
-	void UnbindImpl()
-	{
-		T::DoBind(0);
-	}
-};
-
-
-template <typename T>
-class UnbindToPrevious : private NonCopyable
-{
-public:
-	UnbindToPrevious()
-	: m_oldID(0)
-	{
-	}
-
-	void BindImpl(const GLuint resourceID)
-	{
-		const GLuint oldID = this->GetBoundID();
-
-		if (oldID != resourceID)
-		{
-			T::DoBind(resourceID);
-
-			m_oldID = oldID;
-		}
-	}
-
-	void UnbindImpl()
-	{
-		T::DoBind(m_oldID);
-	}
-
-private:
-	GLuint m_oldID;
-
-	GLuint GetBoundID()
-	{
-		GLint result;
-
-		glGetIntegerv(T::GetBoundName(), &result);
-
-		return static_cast<GLuint>(result);
-	}
-
-}; // class UnbindToPrevious
-
-
-// ---------------------------------------------------------------------------
-
-
-template <typename Type,
-template <typename> class BindPolicy>
-class Resource : private BindPolicy<Type>
-{
-public:
-	Resource()
-	: m_ID(0)
-	{
-	}
-
-	~Resource()
-	{
-		this->Unbind();
-	}
-
-	void Bind()
-	{
-		GetBindPolicy()->BindImpl(m_ID);
-	}
-
-	void Unbind()
-	{
-		GetBindPolicy()->UnbindImpl();
-	}
-
-protected:
-	GLuint m_ID;
-
-private:
-	typedef BindPolicy<Type>* BindPolicyPtr;
-
-	BindPolicyPtr GetBindPolicy()
-	{
-		return static_cast<BindPolicyPtr>(this);
-	}
-
-}; // class Resource
-
-
-// ---------------------------------------------------------------------------
-
-
-class RenderTarget : public Resource<RenderTarget, UnbindToPrevious>
+class RenderTarget : private NonCopyable
 {
 public:
 	RenderTarget(const GLsizei width, const GLsizei height);
 	~RenderTarget();
 
-	static void DoBind(const GLuint resourceID);
-	static GLenum GetBoundName();
+	void Bind();
+	void Unbind();
 
 	FHardwareTexture& GetColorTexture()
 	{
@@ -202,7 +85,12 @@ public:
 	}
 
 private:
+	GLuint m_ID;
+	GLuint m_oldID;
+
 	FHardwareTexture m_texture;
+
+	static GLuint GetBoundID();
 
 }; // class RenderTarget
 
@@ -377,14 +265,16 @@ bool BoundTextureSaveAsPNG(const GLenum target, const char* const path)
 
 
 RenderTarget::RenderTarget(const GLsizei width, const GLsizei height)
-: m_texture(width, height, false, false, true, true)
+: m_ID(0)
+, m_oldID(0)
+, m_texture(width, height, false, false, true, true)
 {
-	m_texture.CreateTexture(NULL, width, height, false, 0, 0);
-
 	glGenFramebuffers(1, &m_ID);
-	glBindFramebuffer(GL_FRAMEBUFFER, m_ID);
+
+	Bind();
+	m_texture.CreateTexture(NULL, width, height, false, 0, 0);
 	m_texture.BindToFrameBuffer();
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	Unbind();
 }
 
 RenderTarget::~RenderTarget()
@@ -393,14 +283,30 @@ RenderTarget::~RenderTarget()
 }
 
 
-void RenderTarget::DoBind(const GLuint resourceID)
+void RenderTarget::Bind()
 {
-	glBindFramebuffer(GL_FRAMEBUFFER, resourceID);
+	const GLuint boundID = GetBoundID();
+
+	if (m_ID != boundID)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_ID);
+		m_oldID = boundID;
+	}
 }
 
-GLuint RenderTarget::GetBoundName()
+void RenderTarget::Unbind()
 {
-	return GL_FRAMEBUFFER_BINDING;
+	glBindFramebuffer(GL_FRAMEBUFFER, m_oldID);
+	m_oldID = 0;
+}
+
+
+GLuint RenderTarget::GetBoundID()
+{
+	GLint result;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &result);
+
+	return static_cast<GLuint>(result);
 }
 
 
