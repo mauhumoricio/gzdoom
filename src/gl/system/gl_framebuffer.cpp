@@ -133,6 +133,14 @@ void OpenGLFrameBuffer::InitializeState()
 		gl_PrintStartupLog();
 #endif
 
+		if (gl.flags&RFL_NPOT_TEXTURE)
+		{
+			Printf("Support for non power 2 textures enabled.\n");
+		}
+		if (gl.flags&RFL_OCCLUSION_QUERY)
+		{
+			Printf("Occlusion query enabled.\n");
+		}
 	}
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClearDepth(1.0f);

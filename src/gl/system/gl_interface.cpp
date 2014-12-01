@@ -125,9 +125,15 @@ void gl_LoadExtensions()
 	const char *version = (const char*)glGetString(GL_VERSION);
 
 	// Don't even start if it's lower than 1.3
-	if (strcmp(version, "2.0") < 0) 
+	if (strcmp(version, "1.3") < 0) 
 	{
-		I_FatalError("Unsupported OpenGL version.\nAt least GL 2.0 is required to run " GAMENAME ".\n");
+		I_FatalError("Unsupported OpenGL version.\nAt least GL 1.3 is required to run " GAMENAME ".\n");
+	}
+	else if (strcmp(version, "1.4") < 0) 
+	{
+		// The engine will still assume 1.4 but the only 1.4 feature being used is GL_GENERATE_MIPMAP which should be supported as an extension
+		// on most 1.3 cards this is present but let's print a warning that not everything may work as intended.
+		Printf(TEXTCOLOR_RED "The current graphics driver implements a OpenGL version lower than 1.4 and may not support all features " GAMENAME " requires.\n");
 	}
 
 	// This loads any function pointers and flags that require a vaild render context to
@@ -136,6 +142,7 @@ void gl_LoadExtensions()
 	gl.shadermodel = 0;	// assume no shader support
 	gl.vendorstring=(char*)glGetString(GL_VENDOR);
 
+	if (CheckExtension("GL_ARB_texture_non_power_of_two")) gl.flags|=RFL_NPOT_TEXTURE;
 	if (CheckExtension("GL_ARB_texture_compression")) gl.flags|=RFL_TEXTURE_COMPRESSION;
 	if (CheckExtension("GL_EXT_texture_compression_s3tc")) gl.flags|=RFL_TEXTURE_COMPRESSION_S3TC;
 	if (strstr(gl.vendorstring, "NVIDIA")) gl.flags|=RFL_NVIDIA;
@@ -165,6 +172,16 @@ void gl_LoadExtensions()
 		// Command line overrides for testing and problem cases.
 		if (Args->CheckParm("-sm2") && gl.shadermodel > 2) gl.shadermodel = 2;
 		else if (Args->CheckParm("-sm3") && gl.shadermodel > 3) gl.shadermodel = 3;
+	}
+
+	if (CheckExtension("GL_ARB_occlusion_query"))
+	{
+		gl.flags |= RFL_OCCLUSION_QUERY;
+	}
+
+	if (gl.flags & RFL_GL_21 || CheckExtension("GL_ARB_vertex_buffer_object"))
+	{
+		gl.flags |= RFL_VBO;
 	}
 
 	if (CheckExtension("GL_ARB_map_buffer_range")) 

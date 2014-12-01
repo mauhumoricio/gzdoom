@@ -198,16 +198,23 @@ bool GLPortal::Start(bool usestencil, bool doquery)
 			else if (gl_noquery) doquery = false;
 			
 			// If occlusion query is supported let's use it to avoid rendering portals that aren't visible
-			if (!QueryObject) glGenQueries(1, &QueryObject);
-			if (QueryObject) 
+			if (doquery && gl.flags&RFL_OCCLUSION_QUERY)
 			{
-				glBeginQuery(GL_SAMPLES_PASSED_ARB, QueryObject);
+				if (!QueryObject) glGenQueries(1, &QueryObject);
+				if (QueryObject) 
+				{
+					glBeginQuery(GL_SAMPLES_PASSED_ARB, QueryObject);
+				}
+				else doquery = false;	// some kind of error happened
+					
 			}
-			else doquery = false;	// some kind of error happened
 
 			DrawPortalStencil();
 
-			glEndQuery(GL_SAMPLES_PASSED_ARB);
+			if (doquery && gl.flags&RFL_OCCLUSION_QUERY)
+			{
+				glEndQuery(GL_SAMPLES_PASSED_ARB);
+			}
 
 			// Clear Z-buffer
 			glStencilFunc(GL_EQUAL,recursion+1,~0);		// draw sky into stencil
@@ -223,17 +230,20 @@ bool GLPortal::Start(bool usestencil, bool doquery)
 			glColorMask(1,1,1,1);
 			glDepthRange(0,1);
 
-			GLuint sampleCount;
-
-			glGetQueryObjectuiv(QueryObject, GL_QUERY_RESULT_ARB, &sampleCount);
-
-			if (sampleCount==0) 	// not visible
+			if (doquery && gl.flags&RFL_OCCLUSION_QUERY)
 			{
-				// restore default stencil op.
-				glStencilOp(GL_KEEP,GL_KEEP,GL_KEEP);
-				glStencilFunc(GL_EQUAL,recursion,~0);		// draw sky into stencil
-				PortalAll.Unclock();
-				return false;
+				GLuint sampleCount;
+
+				glGetQueryObjectuiv(QueryObject, GL_QUERY_RESULT_ARB, &sampleCount);
+
+				if (sampleCount==0) 	// not visible
+				{
+					// restore default stencil op.
+					glStencilOp(GL_KEEP,GL_KEEP,GL_KEEP);
+					glStencilFunc(GL_EQUAL,recursion,~0);		// draw sky into stencil
+					PortalAll.Unclock();
+					return false;
+				}
 			}
 			FDrawInfo::StartDrawInfo();
 		}
