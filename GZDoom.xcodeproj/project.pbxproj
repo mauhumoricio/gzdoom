@@ -134,6 +134,8 @@
 		8A651FF6191E69EB009DB9CD /* glew.c in Sources */ = {isa = PBXBuildFile; fileRef = 8A651FF5191E69E3009DB9CD /* glew.c */; };
 		8A651FFB191E6A39009DB9CD /* libglew_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A651FED191E6988009DB9CD /* libglew_gzdoom.a */; };
 		8A651FFC191E6A3E009DB9CD /* libglew_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A651FED191E6988009DB9CD /* libglew_gzdoom.a */; };
+		8A6C59851A3C4F9F0029AE58 /* i_steam.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A6C59841A3C4F9F0029AE58 /* i_steam.cpp */; };
+		8A6C598B1A3C4FF90029AE58 /* i_steam.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A6C59841A3C4F9F0029AE58 /* i_steam.cpp */; };
 		8A74F2A2139235E0001F54B0 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A74F2A1139235E0001F54B0 /* OpenGL.framework */; };
 		8A74F2BA1392360F001F54B0 /* libfmodex.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A74F2B91392360F001F54B0 /* libfmodex.dylib */; };
 		8A74F38F13925284001F54B0 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A74F38E13925284001F54B0 /* IOKit.framework */; };
@@ -1437,6 +1439,7 @@
 		8A651FF2191E69E3009DB9CD /* glxew.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = glxew.h; sourceTree = "<group>"; };
 		8A651FF3191E69E3009DB9CD /* wglew.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = wglew.h; sourceTree = "<group>"; };
 		8A651FF5191E69E3009DB9CD /* glew.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = glew.c; sourceTree = "<group>"; };
+		8A6C59841A3C4F9F0029AE58 /* i_steam.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = i_steam.cpp; sourceTree = "<group>"; };
 		8A74F2A1139235E0001F54B0 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		8A74F2B91392360F001F54B0 /* libfmodex.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libfmodex.dylib; path = thirdparty/FMOD/lib/libfmodex.dylib; sourceTree = "<group>"; };
 		8A74F38E13925284001F54B0 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
@@ -6531,6 +6534,7 @@
 				8AF27F35139126C00095D9A0 /* i_joystick.cpp */,
 				8AF27F36139126C00095D9A0 /* i_main.cpp */,
 				8AF27F37139126C00095D9A0 /* i_movie.cpp */,
+				8A6C59841A3C4F9F0029AE58 /* i_steam.cpp */,
 				8AF27F38139126C00095D9A0 /* i_system.cpp */,
 				8AF27F39139126C00095D9A0 /* i_system.h */,
 				8A9906AF172D349500B2B92B /* i_system_cocoa.mm */,
@@ -7388,6 +7392,7 @@
 				8A9F540B14BB0F2900F3369B /* i_cd.cpp in Sources */,
 				8A9F540E14BB0F2900F3369B /* i_main.cpp in Sources */,
 				8A9F540F14BB0F2900F3369B /* i_movie.cpp in Sources */,
+				8A6C59851A3C4F9F0029AE58 /* i_steam.cpp in Sources */,
 				8A9F541014BB0F2900F3369B /* i_system.cpp in Sources */,
 				8A9906B0172D349500B2B92B /* i_system_cocoa.mm in Sources */,
 				8A9F546E14BB0F2900F3369B /* iwadpicker_cocoa.mm in Sources */,
@@ -8012,6 +8017,7 @@
 				8AF28171139126C10095D9A0 /* i_joystick.cpp in Sources */,
 				8AF28172139126C10095D9A0 /* i_main.cpp in Sources */,
 				8AF28173139126C10095D9A0 /* i_movie.cpp in Sources */,
+				8A6C598B1A3C4FF90029AE58 /* i_steam.cpp in Sources */,
 				8AF28174139126C10095D9A0 /* i_system.cpp in Sources */,
 				8A9906B1172D349500B2B92B /* i_system_cocoa.mm in Sources */,
 				8ACBD0E619C7730F003DF192 /* i_timer.cpp in Sources */,
