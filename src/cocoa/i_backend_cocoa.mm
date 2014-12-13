@@ -1639,6 +1639,14 @@ const char* I_GetBackEndName()
 }
 
 
+FString OSX_FindApplicationSupport()
+{
+	NSURL *url = [[NSFileManager defaultManager] URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:nil];
+	if(url == nil)
+		return FString();
+	return [[url path] UTF8String];
+}
+
 // ---------------------------------------------------------------------------
 
 
