@@ -1283,6 +1283,16 @@ bool PIT_CheckThing(AActor *thing, FCheckPosition &tm)
 		{
 			P_GiveBody(thing, -damage);
 		}
+
+		if ((thing->flags7 & MF7_THRUREFLECT) && (thing->flags2 & MF2_REFLECTIVE) && (tm.thing->flags & MF_MISSILE))
+		{
+			if (tm.thing->flags2 & MF2_SEEKERMISSILE)
+			{
+				tm.thing->tracer = tm.thing->target;
+			}
+			tm.thing->target = thing;
+			return true;
+		}
 		return false;		// don't traverse any more
 	}
 	if (thing->flags2 & MF2_PUSHABLE && !(tm.thing->flags2 & MF2_CANNOTPUSH))
@@ -1643,7 +1653,7 @@ bool P_TestMobjZ(AActor *actor, bool quick, AActor **pOnmobj)
 		{ // Don't clip against self
 			continue;
 		}
-		if ((actor->flags & MF_MISSILE) && thing == actor->target)
+		if ((actor->flags & MF_MISSILE) && (thing == actor->target))
 		{ // Don't clip against whoever shot the missile.
 			continue;
 		}
@@ -2983,18 +2993,24 @@ bool P_BounceWall(AActor *mo)
 extern FRandom pr_bounce;
 bool P_BounceActor(AActor *mo, AActor *BlockingMobj, bool ontop)
 {
+	//Don't go through all of this if the actor is reflective and wants things to pass through them.
+	if (BlockingMobj && ((BlockingMobj->flags2 & MF2_REFLECTIVE) && (BlockingMobj->flags7 & MF7_THRUREFLECT))) return true;
 	if (mo && BlockingMobj && ((mo->BounceFlags & BOUNCE_AllActors)
-		|| ((mo->flags & MF_MISSILE) && (!(mo->flags2 & MF2_RIP) || (BlockingMobj->flags5 & MF5_DONTRIP) || ((mo->flags6 & MF6_NOBOSSRIP) && (BlockingMobj->flags2 & MF2_BOSS))) && (BlockingMobj->flags2 & MF2_REFLECTIVE))
-		|| ((BlockingMobj->player == NULL) && (!(BlockingMobj->flags3 & MF3_ISMONSTER)))
-		))
+		|| ((mo->flags & MF_MISSILE) && (!(mo->flags2 & MF2_RIP) 
+		|| (BlockingMobj->flags5 & MF5_DONTRIP) 
+		|| ((mo->flags6 & MF6_NOBOSSRIP) && (BlockingMobj->flags2 & MF2_BOSS))) && (BlockingMobj->flags2 & MF2_REFLECTIVE))
+		|| ((BlockingMobj->player == NULL) && (!(BlockingMobj->flags3 & MF3_ISMONSTER)))))
 	{
 		if (mo->bouncecount > 0 && --mo->bouncecount == 0) return false;
+
+		if (mo->flags7 & MF7_HITTARGET)	mo->target = BlockingMobj;
+		if (mo->flags7 & MF7_HITMASTER)	mo->master = BlockingMobj;
+		if (mo->flags7 & MF7_HITTRACER)	mo->tracer = BlockingMobj;
 
 		if (!ontop)
 		{
 			fixed_t speed;
-			angle_t angle = R_PointToAngle2(BlockingMobj->x,
-				BlockingMobj->y, mo->x, mo->y) + ANGLE_1*((pr_bounce() % 16) - 8);
+			angle_t angle = R_PointToAngle2(BlockingMobj->x,BlockingMobj->y, mo->x, mo->y) + ANGLE_1*((pr_bounce() % 16) - 8);
 			speed = P_AproxDistance(mo->velx, mo->vely);
 			speed = FixedMul(speed, mo->wallbouncefactor); // [GZ] was 0.75, using wallbouncefactor seems more consistent
 			mo->angle = angle;
@@ -3734,6 +3750,8 @@ AActor *P_LineAttack(AActor *t1, angle_t angle, fixed_t distance,
 			hity = t1->y + FixedMul(vy, dist);
 			hitz = shootz + FixedMul(vz, dist);
 
+			
+
 			// Spawn bullet puffs or blood spots, depending on target type.
 			if ((puffDefaults != NULL && puffDefaults->flags3 & MF3_PUFFONACTORS) ||
 				(trace.Actor->flags & MF_NOBLOOD) ||
@@ -3743,7 +3761,7 @@ AActor *P_LineAttack(AActor *t1, angle_t angle, fixed_t distance,
 					puffFlags |= PF_HITTHINGBLEED;
 
 				// We must pass the unreplaced puff type here 
-				puff = P_SpawnPuff(t1, pufftype, hitx, hity, hitz, angle - ANG180, 2, puffFlags | PF_HITTHING);
+				puff = P_SpawnPuff(t1, pufftype, hitx, hity, hitz, angle - ANG180, 2, puffFlags | PF_HITTHING, trace.Actor);
 			}
 
 			// Allow puffs to inflict poison damage, so that hitscans can poison, too.
@@ -3764,7 +3782,7 @@ AActor *P_LineAttack(AActor *t1, angle_t angle, fixed_t distance,
 				{
 					dmgflags |= DMG_NO_ARMOR;
 				}
-
+				
 				if (puff == NULL)
 				{
 					// Since the puff is the damage inflictor we need it here 
@@ -4138,7 +4156,7 @@ void P_RailAttack(AActor *source, int damage, int offset_xy, fixed_t offset_z, i
 	int flags;
 
 	assert(puffclass != NULL);		// Because we set it to a default above
-	AActor *puffDefaults = GetDefaultByType(puffclass->GetReplacement());
+	AActor *puffDefaults = GetDefaultByType(puffclass->GetReplacement()); //Contains all the flags such as FOILINVUL, etc.
 
 	flags = (puffDefaults->flags6 & MF6_NOTRIGGER) ? 0 : TRACE_PCross | TRACE_Impact;
 	rail_data.StopAtInvul = (puffDefaults->flags3 & MF3_FOILINVUL) ? false : true;
@@ -4186,8 +4204,9 @@ void P_RailAttack(AActor *source, int damage, int offset_xy, fixed_t offset_z, i
 		}
 		if (spawnpuff)
 		{
-			P_SpawnPuff(source, puffclass, x, y, z, (source->angle + angleoffset) - ANG90, 1, puffflags);
+			P_SpawnPuff(source, puffclass, x, y, z, (source->angle + angleoffset) - ANG90, 1, puffflags, hitactor);
 		}
+		
 		if (puffDefaults && puffDefaults->PoisonDamage > 0 && puffDefaults->PoisonDuration != INT_MIN)
 		{
 			P_PoisonMobj(hitactor, thepuff ? thepuff : source, source, puffDefaults->PoisonDamage, puffDefaults->PoisonDuration, puffDefaults->PoisonPeriod, puffDefaults->PoisonDamageType);
@@ -4196,6 +4215,7 @@ void P_RailAttack(AActor *source, int damage, int offset_xy, fixed_t offset_z, i
 		dmgFlagPass += (puffDefaults->flags3 & MF3_FOILINVUL) ? DMG_FOILINVUL : 0; //[MC]Because the original foilinvul check wasn't working.
 		dmgFlagPass += (puffDefaults->flags7 & MF7_FOILBUDDHA) ? DMG_FOILBUDDHA : 0;
 		int newdam = P_DamageMobj(hitactor, thepuff ? thepuff : source, source, damage, damagetype, dmgFlagPass);
+
 		if (bleed)
 		{
 			P_SpawnBlood(x, y, z, (source->angle + angleoffset) - ANG180, newdam > 0 ? newdam : damage, hitactor);
@@ -4247,7 +4267,7 @@ CVAR(Float, chase_dist, 90.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 void P_AimCamera(AActor *t1, fixed_t &CameraX, fixed_t &CameraY, fixed_t &CameraZ, sector_t *&CameraSector)
 {
-	fixed_t distance = (fixed_t)(chase_dist * FRACUNIT);
+	fixed_t distance = (fixed_t)(clamp<double>(chase_dist, 0, 30000) * FRACUNIT);
 	angle_t angle = (t1->angle - ANG180) >> ANGLETOFINESHIFT;
 	angle_t pitch = (angle_t)(t1->pitch) >> ANGLETOFINESHIFT;
 	FTraceResults trace;
@@ -4257,7 +4277,7 @@ void P_AimCamera(AActor *t1, fixed_t &CameraX, fixed_t &CameraY, fixed_t &Camera
 	vy = FixedMul(finecosine[pitch], finesine[angle]);
 	vz = finesine[pitch];
 
-	sz = t1->z - t1->floorclip + t1->height + (fixed_t)(chase_height * FRACUNIT);
+	sz = t1->z - t1->floorclip + t1->height + (fixed_t)(clamp<double>(chase_height, -1000, 1000) * FRACUNIT);
 
 	if (Trace(t1->x, t1->y, sz, t1->Sector,
 		vx, vy, vz, distance, 0, 0, NULL, trace) &&
@@ -4733,7 +4753,7 @@ void P_RadiusAttack(AActor *bombspot, AActor *bombsource, int bombdamage, int bo
 			points *= thing->GetClass()->Meta.GetMetaFixed(AMETA_RDFactor, FRACUNIT) / (double)FRACUNIT;
 
 			// points and bombdamage should be the same sign
-			if ((points * bombdamage) > 0 && P_CheckSight(thing, bombspot, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY))
+			if (((bombspot->flags7 & MF7_CAUSEPAIN) || (points * bombdamage) > 0) && P_CheckSight(thing, bombspot, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY))
 			{ // OK to damage; target is in direct path
 				double velz;
 				double thrust;
@@ -5090,6 +5110,8 @@ int P_PushUp(AActor *thing, FChangePosition *cpos)
 		// is normally for projectiles which would have exploded by now anyway...
 		if (thing->flags6 & MF6_THRUSPECIES && thing->GetSpecies() == intersect->GetSpecies())
 			continue;
+		if ((thing->flags & MF_MISSILE) && (intersect->flags2 & MF2_REFLECTIVE) && (intersect->flags7 & MF7_THRUREFLECT))
+			continue;
 		if (!(intersect->flags2 & MF2_PASSMOBJ) ||
 			(!(intersect->flags3 & MF3_ISMONSTER) && intersect->Mass > mymass) ||
 			(intersect->flags4 & MF4_ACTLIKEBRIDGE)
@@ -5098,7 +5120,8 @@ int P_PushUp(AActor *thing, FChangePosition *cpos)
 			// Can't push bridges or things more massive than ourself
 			return 2;
 		}
-		fixed_t oldz = intersect->z;
+		fixed_t oldz;
+		oldz = intersect->z;
 		P_AdjustFloorCeil(intersect, cpos);
 		intersect->z = thing->z + thing->height + 1;
 		if (P_PushUp(intersect, cpos))

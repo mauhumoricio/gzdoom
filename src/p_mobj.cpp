@@ -333,7 +333,11 @@ void AActor::Serialize (FArchive &arc)
 	{
 		arc << FriendPlayer;
 	}
-
+	if (SaveVersion >= 4517)
+	{
+		arc << TeleFogSourceType
+			<< TeleFogDestType;
+	}
 	{
 		FString tagstr;
 		if (arc.IsStoring() && Tag != NULL && Tag->Len() > 0) tagstr = *Tag;
@@ -1202,6 +1206,9 @@ void P_ExplodeMissile (AActor *mo, line_t *line, AActor *target)
 	
 	if (target != NULL && ((target->flags & (MF_SHOOTABLE|MF_CORPSE)) || (target->flags6 & MF6_KILLED)) )
 	{
+		if (mo->flags7 & MF7_HITTARGET)	mo->target = target;
+		if (mo->flags7 & MF7_HITMASTER)	mo->master = target;
+		if (mo->flags7 & MF7_HITTRACER)	mo->tracer = target;
 		if (target->flags & MF_NOBLOOD) nextstate = mo->FindState(NAME_Crash);
 		if (nextstate == NULL) nextstate = mo->FindState(NAME_Death, NAME_Extreme);
 	}
@@ -1660,6 +1667,7 @@ fixed_t P_XYMovement (AActor *mo, fixed_t scrollx, fixed_t scrolly)
 	int steps, step, totalsteps;
 	fixed_t startx, starty;
 	fixed_t oldfloorz = mo->floorz;
+	fixed_t oldz = mo->z;
 
 	fixed_t maxmove = (mo->waterlevel < 1) || (mo->flags & MF_MISSILE) || 
 					  (mo->player && mo->player->crouchoffset<-10*FRACUNIT) ? MAXMOVE : MAXMOVE/4;
@@ -1949,20 +1957,55 @@ fixed_t P_XYMovement (AActor *mo, fixed_t scrollx, fixed_t scrolly)
 				}
 				if (BlockingMobj && (BlockingMobj->flags2 & MF2_REFLECTIVE))
 				{
-					angle = R_PointToAngle2(BlockingMobj->x, BlockingMobj->y, mo->x, mo->y);
-
-					// Change angle for deflection/reflection
-					if (mo->AdjustReflectionAngle (BlockingMobj, angle))
+					bool seeker = (mo->flags2 & MF2_SEEKERMISSILE) ? true : false;
+					// Don't change the angle if there's THRUREFLECT on the monster.
+					if (!(BlockingMobj->flags7 & MF7_THRUREFLECT))
 					{
-						goto explode;
-					}
+						//int dir;
+						//angle_t delta;
+						bool dontReflect = (mo->AdjustReflectionAngle(BlockingMobj, angle));
+						// Change angle for deflection/reflection
 
-					// Reflect the missile along angle
-					mo->angle = angle;
-					angle >>= ANGLETOFINESHIFT;
-					mo->velx = FixedMul (mo->Speed>>1, finecosine[angle]);
-					mo->vely = FixedMul (mo->Speed>>1, finesine[angle]);
-					mo->velz = -mo->velz/2;
+						if (!dontReflect)
+						{
+							bool tg = (mo->target != NULL);
+							bool blockingtg = (BlockingMobj->target != NULL);
+							if (BlockingMobj->flags7 & MF7_AIMREFLECT && (tg || blockingtg))
+							{
+								AActor *origin;
+								if (tg)
+									origin = mo->target;
+								else if (blockingtg)
+									origin = BlockingMobj->target;
+
+								float speed = (float)(mo->Speed);
+								//dest->x - source->x
+								FVector3 velocity(origin->x - mo->x, origin->y - mo->y, (origin->z + (origin->height/2)) - mo->z);
+								velocity.Resize(speed);
+								angle = mo->angle >> ANGLETOFINESHIFT;
+								mo->velx = (fixed_t)(velocity.X);
+								mo->vely = (fixed_t)(velocity.Y);
+								mo->velz = (fixed_t)(velocity.Z);
+								/*
+								mo->velx = FixedMul(mo->Speed, finecosine[angle]);
+								mo->vely = FixedMul(mo->Speed, finesine[angle]);
+								mo->velz = -mo->velz;
+								*/
+							}
+							else
+							{
+								mo->angle = angle;
+								angle >>= ANGLETOFINESHIFT;
+								mo->velx = FixedMul(mo->Speed >> 1, finecosine[angle]);
+								mo->vely = FixedMul(mo->Speed >> 1, finesine[angle]);
+								mo->velz = -mo->velz / 2;
+							}
+						}
+						else
+						{
+							goto explode;
+						}						
+					}
 					if (mo->flags2 & MF2_SEEKERMISSILE)
 					{
 						mo->tracer = mo->target;
@@ -2643,18 +2686,10 @@ void P_NightmareRespawn (AActor *mobj)
 	mo->PrevZ = z;		// Do not interpolate Z position if we changed it since spawning.
 
 	// spawn a teleport fog at old spot because of removal of the body?
-	mo = Spawn ("TeleportFog", mobj->x, mobj->y, mobj->z, ALLOW_REPLACE);
-	if (mo != NULL)
-	{
-		mo->z += TELEFOGHEIGHT;
-	}
+	P_SpawnTeleportFog(mobj, mobj->x, mobj->y, mobj->z + TELEFOGHEIGHT, true);
 
 	// spawn a teleport fog at the new spot
-	mo = Spawn ("TeleportFog", x, y, z, ALLOW_REPLACE);
-	if (mo != NULL)
-	{
-		mo->z += TELEFOGHEIGHT;
-	}
+	P_SpawnTeleportFog(mobj, x, y, z + TELEFOGHEIGHT, false);
 
 	// remove the old monster
 	mobj->Destroy ();
@@ -2893,9 +2928,12 @@ int AActor::SpecialMissileHit (AActor *victim)
 bool AActor::AdjustReflectionAngle (AActor *thing, angle_t &angle)
 {
 	if (flags2 & MF2_DONTREFLECT) return true;
+	if (thing->flags7 & MF7_THRUREFLECT) return false;
 
+	if (thing->flags7 & MF7_MIRRORREFLECT)
+		angle += ANGLE_180;
 	// Change angle for reflection
-	if (thing->flags4&MF4_SHIELDREFLECT)
+	else if (thing->flags4&MF4_SHIELDREFLECT)
 	{
 		// Shield reflection (from the Centaur
 		if (abs (angle - thing->angle)>>24 > 45)
@@ -2917,6 +2955,13 @@ bool AActor::AdjustReflectionAngle (AActor *thing, angle_t &angle)
 			angle += ANG45;
 		else 
 			angle -= ANG45;
+	}
+	else if (thing->flags7 & MF7_AIMREFLECT)
+	{
+		if (this->target != NULL)
+			A_Face(this, this->target);
+		else if (thing->target != NULL)
+			A_Face(this, thing->target);
 	}
 	else 
 		angle += ANGLE_1 * ((pr_reflect()%16)-8);
@@ -3259,7 +3304,7 @@ void AActor::Tick ()
 				else if (flags & MF_SPECIAL)
 				{ //Item pickup time
 					//clock (BotWTG);
-					bglobal.WhatToGet (players[i].mo, this);
+					players[i].Bot->WhatToGet (this);
 					//unclock (BotWTG);
 					BotWTG++;
 				}
@@ -3267,7 +3312,7 @@ void AActor::Tick ()
 				{
 					if (!players[i].Bot->missile && (flags3 & MF3_WARNBOT))
 					{ //warn for incoming missiles.
-						if (target != players[i].mo && bglobal.Check_LOS (players[i].mo, this, ANGLE_90))
+						if (target != players[i].mo && players[i].Bot->Check_LOS (this, ANGLE_90))
 							players[i].Bot->missile = this;
 					}
 				}
@@ -4302,12 +4347,15 @@ APlayerPawn *P_SpawnPlayer (FPlayerStart *mthing, int playernum, int flags)
 	{
 		spawn_x = p->mo->x;
 		spawn_y = p->mo->y;
+		spawn_z = p->mo->z;
+
 		spawn_angle = p->mo->angle;
 	}
 	else
 	{
 		spawn_x = mthing->x;
 		spawn_y = mthing->y;
+
 		// Allow full angular precision but avoid roundoff errors for multiples of 45 degrees.
 		if (mthing->angle % 45 != 0)
 		{
@@ -4321,14 +4369,14 @@ APlayerPawn *P_SpawnPlayer (FPlayerStart *mthing, int playernum, int flags)
 		{
 			spawn_angle += 1 << ANGLETOFINESHIFT;
 		}
-	}
 
-	if (GetDefaultByType(p->cls)->flags & MF_SPAWNCEILING)
-		spawn_z = ONCEILINGZ;
-	else if (GetDefaultByType(p->cls)->flags2 & MF2_SPAWNFLOAT)
-		spawn_z = FLOATRANDZ;
-	else
-		spawn_z = ONFLOORZ;
+		if (GetDefaultByType(p->cls)->flags & MF_SPAWNCEILING)
+			spawn_z = ONCEILINGZ;
+		else if (GetDefaultByType(p->cls)->flags2 & MF2_SPAWNFLOAT)
+			spawn_z = FLOATRANDZ;
+		else
+			spawn_z = ONFLOORZ;
+	}
 
 	mobj = static_cast<APlayerPawn *>
 		(Spawn (p->cls, spawn_x, spawn_y, spawn_z, NO_REPLACE));
@@ -4445,7 +4493,8 @@ APlayerPawn *P_SpawnPlayer (FPlayerStart *mthing, int playernum, int flags)
 	{
 		APowerup *invul = static_cast<APowerup*>(p->mo->GiveInventoryType (RUNTIME_CLASS(APowerInvulnerable)));
 		invul->EffectTics = 3*TICRATE;
-		invul->BlendColor = 0;				// don't mess with the view
+		invul->BlendColor = 0;			// don't mess with the view
+		invul->ItemFlags |= IF_UNDROPPABLE;	// Don't drop this
 		p->mo->effects |= FX_RESPAWNINVUL;	// [RH] special effect
 	}
 
@@ -4881,7 +4930,7 @@ AActor *P_SpawnMapThing (FMapThing *mthing, int position)
 // P_SpawnPuff
 //
 
-AActor *P_SpawnPuff (AActor *source, const PClass *pufftype, fixed_t x, fixed_t y, fixed_t z, angle_t dir, int updown, int flags)
+AActor *P_SpawnPuff (AActor *source, const PClass *pufftype, fixed_t x, fixed_t y, fixed_t z, angle_t dir, int updown, int flags, AActor *vict)
 {
 	AActor *puff;
 	
@@ -4891,9 +4940,17 @@ AActor *P_SpawnPuff (AActor *source, const PClass *pufftype, fixed_t x, fixed_t 
 	puff = Spawn (pufftype, x, y, z, ALLOW_REPLACE);
 	if (puff == NULL) return NULL;
 
+	//Moved puff creation and target/master/tracer setting to here. 
+	if (puff && vict)
+	{
+		if (puff->flags7 & MF7_HITTARGET)	puff->target = vict;
+		if (puff->flags7 & MF7_HITMASTER)	puff->master = vict;
+		if (puff->flags7 & MF7_HITTRACER)	puff->tracer = vict;
+	}
 	// [BB] If the puff came from a player, set the target of the puff to this player.
 	if ( puff && (puff->flags5 & MF5_PUFFGETSOWNER))
 		puff->target = source;
+	
 
 	if (source != NULL) puff->angle = R_PointToAngle2(x, y, source->x, source->y);
 

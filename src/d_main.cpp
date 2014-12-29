@@ -2273,6 +2273,8 @@ void D_DoomMain (void)
 		execFiles = Args->GatherFiles ("-exec");
 		D_MultiExec (execFiles, true);
 
+		C_ExecCmdLineParams ();		// [RH] do all +set commands on the command line
+
 		CopyFiles(allwads, pwads);
 
 		// Since this function will never leave we must delete this array here manually.
@@ -2288,7 +2290,8 @@ void D_DoomMain (void)
 		// Now that wads are loaded, define mod-specific cvars.
 		ParseCVarInfo();
 
-		C_ExecCmdLineParams ();		// [RH] do all +set commands on the command line
+		// Try setting previously unknown cvars again, as a CVARINFO may have made them known.
+		C_ExecStoredSets();
 
 		// [RH] Initialize localizable strings.
 		GStrings.LoadStrings (false);
@@ -2578,6 +2581,7 @@ void D_DoomMain (void)
 			new (&gameinfo) gameinfo_t;		// Reset gameinfo
 			S_Shutdown();					// free all channels and delete playlist
 			C_ClearAliases();				// CCMDs won't be reinitialized so these need to be deleted here
+			DestroyCVarsFlagged(CVAR_MOD);	// Delete any cvar left by mods
 
 			GC::FullGC();					// perform one final garbage collection before deleting the class data
 			PClass::ClearRuntimeData();		// clear all runtime generated class data

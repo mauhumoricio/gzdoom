@@ -2393,7 +2393,7 @@ void FBehavior::LoadScriptsDirectory ()
 		int size = LittleLong(scripts.dw[1]);
 		if (size >= 6)
 		{
-			int script_num = LittleShort(scripts.w[4]);
+			int script_num = LittleShort(scripts.sw[4]);
 			ScriptPtr *ptr = const_cast<ScriptPtr *>(FindScript(script_num));
 			if (ptr != NULL)
 			{
@@ -4438,6 +4438,8 @@ enum EACSFunctions
 	ACSF_PickActor,
 	ACSF_IsPointerEqual,
 	ACSF_CanRaiseActor,
+	ACSF_SetActorTeleFog,		// 86
+	ACSF_SwapActorTeleFog,
 
 	/* Zandronum's - these must be skipped when we reach 99!
 	-100:ResetMap(0),
@@ -4747,6 +4749,82 @@ static void SetActorPitch(AActor *activator, int tid, int angle, bool interpolat
 			actor->SetPitch(angle << 16, interpolate);
 		}
 	}
+}
+
+static void SetActorTeleFog(AActor *activator, int tid, FName telefogsrc, FName telefogdest)
+{
+	//Simply put, if it doesn't exist, it won't change. One can use "" in this scenario.
+	const PClass *check;
+	if (tid == 0)
+	{
+		if (activator != NULL)
+		{
+			check = PClass::FindClass(telefogsrc);
+			if (check == NULL || !stricmp(telefogsrc, "none") || !stricmp(telefogsrc, "null"))
+				activator->TeleFogSourceType = NULL;
+			else
+				activator->TeleFogSourceType = check;
+
+			check = PClass::FindClass(telefogdest);
+			if (check == NULL || !stricmp(telefogdest, "none") || !stricmp(telefogdest, "null"))
+				activator->TeleFogDestType = NULL;
+			else
+				activator->TeleFogDestType = check;
+		}
+	}
+	else
+	{
+		FActorIterator iterator(tid);
+		AActor *actor;
+
+		while ((actor = iterator.Next()))
+		{
+			check = PClass::FindClass(telefogsrc);
+			if (check == NULL || !stricmp(telefogsrc, "none") || !stricmp(telefogsrc, "null"))
+				actor->TeleFogSourceType = NULL;
+			else
+				actor->TeleFogSourceType = check;
+
+			check = PClass::FindClass(telefogdest);
+			if (check == NULL || !stricmp(telefogdest, "none") || !stricmp(telefogdest, "null"))
+				actor->TeleFogDestType = NULL;
+			else
+				actor->TeleFogDestType = check;
+		}
+	}
+}
+
+static int SwapActorTeleFog(AActor *activator, int tid)
+{
+	int count = 0;
+	if (tid == 0)
+	{
+		if ((activator == NULL) || (activator->TeleFogSourceType = activator->TeleFogDestType)) 
+			return 0; //Does nothing if they're the same.
+		else 
+		{
+			const PClass *temp = activator->TeleFogSourceType;
+			activator->TeleFogSourceType = activator->TeleFogDestType;
+			activator->TeleFogDestType = temp;
+			return 1;
+		}
+	}
+	else
+	{
+		FActorIterator iterator(tid);
+		AActor *actor;
+		
+		while ((actor = iterator.Next()))
+		{
+			if (actor->TeleFogSourceType == actor->TeleFogDestType) 
+				continue; //They're the same. Save the effort.
+			const PClass *temp = actor->TeleFogSourceType;
+			actor->TeleFogSourceType = actor->TeleFogDestType;
+			actor->TeleFogDestType = temp;
+			count++;
+		}
+	}
+	return count;
 }
 
 
@@ -5662,7 +5740,18 @@ doplaysound:			if (funcIndex == ACSF_PlayActorSound)
 				SetActorPitch(activator, args[0], args[1], argCount > 2 ? !!args[2] : false);
 			}
 			break;
-
+		case ACSF_SetActorTeleFog:
+			if (argCount >= 3)
+			{
+				SetActorTeleFog(activator, args[0], FBehavior::StaticLookupString(args[1]), FBehavior::StaticLookupString(args[2]));
+			}
+			break;
+		case ACSF_SwapActorTeleFog:
+			if (argCount >= 1)
+			{
+				return SwapActorTeleFog(activator, args[0]);
+			}
+			break;
 		case ACSF_PickActor:
 			if (argCount >= 5)
 			{
@@ -7407,22 +7496,9 @@ scriptwait:
 			break;
 
 		case PCD_PRINTBINARY:
-#if (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && (__GNUC_MINOR__ >= 6)))) || defined(__clang__)
-#define HAS_DIAGNOSTIC_PRAGMA
-#endif
-#ifdef HAS_DIAGNOSTIC_PRAGMA
-#pragma GCC diagnostic push
-#ifdef __clang__
-#pragma GCC diagnostic ignored "-Wformat-invalid-specifier"
-#else
-#pragma GCC diagnostic ignored "-Wformat="
-#endif
-#pragma GCC diagnostic ignored "-Wformat-extra-args"
-#endif
+			IGNORE_FORMAT_PRE
 			work.AppendFormat ("%B", STACK(1));
-#ifdef HAS_DIAGNOSTIC_PRAGMA
-#pragma GCC diagnostic pop
-#endif
+			IGNORE_FORMAT_POST
 			--sp;
 			break;
 
