@@ -31,14 +31,14 @@
  **
  */
 
+#include <GL/glew.h>
+
 #import <AppKit/NSButton.h>
 #import <AppKit/NSCursor.h>
 #import <AppKit/NSImage.h>
 #import <AppKit/NSOpenGL.h>
 #import <AppKit/NSOpenGLView.h>
 #import <Carbon/Carbon.h>
-#import <OpenGL/gl.h>
-#import <OpenGL/OpenGL.h>
 
 // Avoid collision between DObject class and Objective-C
 #define Class ObjectClass
@@ -58,6 +58,8 @@
 #include "v_text.h"
 #include "v_video.h"
 #include "version.h"
+
+#include "gl/system/gl_framebuffer.h"
 
 #include "i_common.h"
 #include "i_rbopts.h"
@@ -519,7 +521,17 @@ DFrameBuffer* CocoaVideo::CreateFrameBuffer(const int width, const int height, c
 		delete old;
 	}
 
-	CocoaFrameBuffer* fb = new CocoaFrameBuffer(width, height, fullscreen);
+	DFrameBuffer* fb = NULL;
+
+	if (1 == s_currentRenderer)
+ 	{
+		fb = new OpenGLFrameBuffer(NULL, width, height, 32, 60, fullscreen);
+	}
+	else
+	{
+		fb = new CocoaFrameBuffer(width, height, fullscreen);
+	}
+
 	fb->SetFlash(flashColor, flashAmount);
 
 	SetMode(width, height, fullscreen, vid_hidpi);
