@@ -79,6 +79,34 @@ CUSTOM_CVAR(Bool, fullscreen, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 	setmodeneeded = true;
 }
 
+static int s_currentRenderer;
+
+CUSTOM_CVAR(Int, vid_renderer, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCALL)
+{
+	// 0: Software renderer
+	// 1: OpenGL renderer
+
+	if (self != s_currentRenderer)
+	{
+		switch (self)
+		{
+			case 0:
+				Printf("Switching to software renderer...\n");
+				break;
+			case 1:
+				Printf("Switching to OpenGL renderer...\n");
+				break;
+			default:
+				Printf("Unknown renderer (%d). Falling back to software renderer...\n",
+					static_cast<int>(vid_renderer));
+				self = 0;
+				break;
+		}
+
+		Printf("You must restart " GAMENAME " to switch the renderer\n");
+	}
+}
+
 
 RenderBufferOptions rbOpts;
 
@@ -1007,9 +1035,15 @@ static void I_DeleteRenderer()
 
 void I_CreateRenderer()
 {
+	s_currentRenderer = vid_renderer;
+
 	if (NULL == Renderer)
 	{
-		Renderer = new FSoftwareRenderer;
+		extern FRenderer* gl_CreateInterface();
+
+		Renderer = 1 == s_currentRenderer
+			? gl_CreateInterface()
+			: new FSoftwareRenderer;
 		atterm(I_DeleteRenderer);
 	}
 }
