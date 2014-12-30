@@ -542,8 +542,6 @@ CocoaVideo::CocoaVideo(const int multisample)
 	[[glView openGLContext] makeCurrentContext];
 
 	[m_window setContentView:glView];
-
-	glewInit();
 }
 
 void CocoaVideo::StartModeIterator(const int bits, const bool fullscreen)
