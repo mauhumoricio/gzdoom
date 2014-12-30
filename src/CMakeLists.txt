@@ -626,7 +626,8 @@ set( PLAT_COCOA_SOURCES
 	posix/cocoa/i_joystick.cpp
 	posix/cocoa/i_main.mm
 	posix/cocoa/i_timer.cpp
-	posix/cocoa/i_video.mm )
+	posix/cocoa/i_video.mm
+	posix/cocoa/i_glvideo.mm )
 
 if( WIN32 )
 	set( SYSTEM_SOURCES_DIR win32 )

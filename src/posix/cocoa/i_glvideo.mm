@@ -1,5 +1,5 @@
 /*
- ** sdlglvideo.h
+ ** i_glvideo.mm
  **
  **---------------------------------------------------------------------------
  ** Copyright 2012-2014 Alexey Lysiuk
@@ -31,47 +31,92 @@
  **
  */
 
+#import <AppKit/NSOpenGL.h>
 
-// IMPORTANT NOTE!
-// This file was intentially named sdlglvideo.h but it has nothing with SDL
-// The name was selected to avoid spreding of changes over the project
-// The same applies to SDLGLFB class
-// See gl/system/gl_framebuffer.h for details about its usage
+#include "sdlglvideo.h"
 
 
-#ifndef COCOA_SDLGLVIDEO_H_INCLUDED
-#define COCOA_SDLGLVIDEO_H_INCLUDED
-
-#include "v_video.h"
-
-class SDLGLFB : public DFrameBuffer
+SDLGLFB::SDLGLFB(void*, const int width, const int height, int, int, const bool fullscreen)
+: DFrameBuffer(width, height)
+, m_Lock(-1)
+, m_UpdatePending(false)
+, m_fullscreen(fullscreen)
+, m_supportsGamma(true)
 {
-public:
-	// This must have the same parameters as the Windows version, even if they are not used!
-	SDLGLFB(void *hMonitor, int width, int height, int, int, bool fullscreen);
-	~SDLGLFB();
+}
 
-	virtual bool Lock(bool buffered = true);
-	virtual void Unlock();
-	virtual bool IsLocked();
+SDLGLFB::~SDLGLFB()
+{
+}
 
-	virtual bool IsFullscreen();
-	virtual void SetVSync(bool vsync);
-	
-protected:
-	int  m_Lock;
-	bool m_UpdatePending;
 
-	bool m_fullscreen;
-	bool m_supportsGamma;
+bool SDLGLFB::Lock(bool buffered)
+{
+	m_Lock++;
 
-	SDLGLFB() { }
-	void InitializeState() { }
+	Buffer = MemBuffer;
 
-	bool CanUpdate();
-	void SwapBuffers();
+	return true;
+}
 
-	void SetGammaTable(WORD* table);
-};
+void SDLGLFB::Unlock() 	
+{ 
+	if (m_UpdatePending && 1 == m_Lock)
+	{
+		Update();
+	}
+	else if (--m_Lock <= 0)
+	{
+		m_Lock = 0;
+	}
+}
 
-#endif // COCOA_SDLGLVIDEO_H_INCLUDED
+bool SDLGLFB::IsLocked()
+{ 
+	return m_Lock > 0;
+}
+
+
+bool SDLGLFB::IsFullscreen()
+{
+	return m_fullscreen;
+}
+
+void SDLGLFB::SetVSync(bool vsync)
+{
+#if MAC_OS_X_VERSION_MAX_ALLOWED < 1050
+	const long value = vsync ? 1 : 0;
+#else // 10.5 or newer
+	const GLint value = vsync ? 1 : 0;
+#endif // prior to 10.5
+
+	[[NSOpenGLContext currentContext] setValues:&value
+								   forParameter:NSOpenGLCPSwapInterval];
+}
+
+
+bool SDLGLFB::CanUpdate()
+{
+	if (m_Lock != 1)
+	{
+		if (m_Lock > 0)
+		{
+			m_UpdatePending = true;
+			--m_Lock;
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
+void SDLGLFB::SetGammaTable(WORD *tbl)
+{
+	// TODO !!!
+}
+
+void SDLGLFB::SwapBuffers()
+{
+	[[NSOpenGLContext currentContext] flushBuffer];
+}
