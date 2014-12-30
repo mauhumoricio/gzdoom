@@ -3761,14 +3761,7 @@ AActor *P_LineAttack(AActor *t1, angle_t angle, fixed_t distance,
 					puffFlags |= PF_HITTHINGBLEED;
 
 				// We must pass the unreplaced puff type here 
-				puff = P_SpawnPuff(t1, pufftype, hitx, hity, hitz, angle - ANG180, 2, puffFlags | PF_HITTHING);
-			}
-
-			if (puffDefaults != NULL && trace.Actor != NULL && puff != NULL)
-			{
-				if (puffDefaults->flags7 && MF7_HITTARGET)	puff->target = trace.Actor;
-				if (puffDefaults->flags7 && MF7_HITMASTER)	puff->master = trace.Actor;
-				if (puffDefaults->flags7 && MF7_HITTRACER)	puff->tracer = trace.Actor;
+				puff = P_SpawnPuff(t1, pufftype, hitx, hity, hitz, angle - ANG180, 2, puffFlags | PF_HITTHING, trace.Actor);
 			}
 
 			// Allow puffs to inflict poison damage, so that hitscans can poison, too.
@@ -4211,14 +4204,9 @@ void P_RailAttack(AActor *source, int damage, int offset_xy, fixed_t offset_z, i
 		}
 		if (spawnpuff)
 		{
-			P_SpawnPuff(source, puffclass, x, y, z, (source->angle + angleoffset) - ANG90, 1, puffflags);
+			P_SpawnPuff(source, puffclass, x, y, z, (source->angle + angleoffset) - ANG90, 1, puffflags, hitactor);
 		}
-		if (hitactor != NULL && puffDefaults != NULL && thepuff != NULL)
-		{
-			if (puffDefaults->flags7 & MF7_HITTARGET)	thepuff->target = hitactor;
-			if (puffDefaults->flags7 & MF7_HITMASTER)	thepuff->master = hitactor;
-			if (puffDefaults->flags7 & MF7_HITTRACER)	thepuff->tracer = hitactor;
-		}
+		
 		if (puffDefaults && puffDefaults->PoisonDamage > 0 && puffDefaults->PoisonDuration != INT_MIN)
 		{
 			P_PoisonMobj(hitactor, thepuff ? thepuff : source, source, puffDefaults->PoisonDamage, puffDefaults->PoisonDuration, puffDefaults->PoisonPeriod, puffDefaults->PoisonDamageType);
@@ -4279,7 +4267,7 @@ CVAR(Float, chase_dist, 90.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 void P_AimCamera(AActor *t1, fixed_t &CameraX, fixed_t &CameraY, fixed_t &CameraZ, sector_t *&CameraSector)
 {
-	fixed_t distance = (fixed_t)(chase_dist * FRACUNIT);
+	fixed_t distance = (fixed_t)(clamp<double>(chase_dist, 0, 30000) * FRACUNIT);
 	angle_t angle = (t1->angle - ANG180) >> ANGLETOFINESHIFT;
 	angle_t pitch = (angle_t)(t1->pitch) >> ANGLETOFINESHIFT;
 	FTraceResults trace;
@@ -4289,7 +4277,7 @@ void P_AimCamera(AActor *t1, fixed_t &CameraX, fixed_t &CameraY, fixed_t &Camera
 	vy = FixedMul(finecosine[pitch], finesine[angle]);
 	vz = finesine[pitch];
 
-	sz = t1->z - t1->floorclip + t1->height + (fixed_t)(chase_height * FRACUNIT);
+	sz = t1->z - t1->floorclip + t1->height + (fixed_t)(clamp<double>(chase_height, -1000, 1000) * FRACUNIT);
 
 	if (Trace(t1->x, t1->y, sz, t1->Sector,
 		vx, vy, vz, distance, 0, 0, NULL, trace) &&
@@ -4765,7 +4753,7 @@ void P_RadiusAttack(AActor *bombspot, AActor *bombsource, int bombdamage, int bo
 			points *= thing->GetClass()->Meta.GetMetaFixed(AMETA_RDFactor, FRACUNIT) / (double)FRACUNIT;
 
 			// points and bombdamage should be the same sign
-			if ((points * bombdamage) > 0 && P_CheckSight(thing, bombspot, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY))
+			if (((bombspot->flags7 & MF7_CAUSEPAIN) || (points * bombdamage) > 0) && P_CheckSight(thing, bombspot, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY))
 			{ // OK to damage; target is in direct path
 				double velz;
 				double thrust;
