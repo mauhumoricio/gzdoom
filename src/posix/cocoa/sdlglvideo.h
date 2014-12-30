@@ -44,6 +44,10 @@
 
 #include "v_video.h"
 
+#include "gl/shaders/gl_shader.h"
+#include "gl/textures/gl_hwtexture.h"
+
+
 class SDLGLFB : public DFrameBuffer
 {
 public:
@@ -59,14 +63,21 @@ public:
 	virtual void SetVSync(bool vsync);
 	
 protected:
-	int  m_Lock;
-	bool m_UpdatePending;
+	int                 m_lock;
+	bool                m_isUpdatePending;
 
-	bool m_fullscreen;
-	bool m_supportsGamma;
+	bool                m_supportsGamma;
 
-	SDLGLFB() { }
-	void InitializeState() { }
+	FShader             m_gammaProgram;
+	FHardwareTexture    m_gammaTexture;
+
+	static const size_t GAMMA_TABLE_SIZE = 256;
+	uint32_t            m_gammaTable[GAMMA_TABLE_SIZE];
+
+
+	SDLGLFB();
+
+	void InitializeState();
 
 	bool CanUpdate();
 	void SwapBuffers();
