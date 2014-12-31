@@ -44,6 +44,7 @@
 #define Class ObjectClass
 
 #include "bitmap.h"
+#include "c_console.h"
 #include "c_dispatch.h"
 #include "doomstat.h"
 #include "hardware.h"
@@ -72,7 +73,7 @@
 
 
 EXTERN_CVAR(Bool, ticker   )
-EXTERN_CVAR(Bool, vid_vsync)
+EXTERN_CVAR(Int,  vid_vsync)
 EXTERN_CVAR(Bool, vid_hidpi)
 
 CUSTOM_CVAR(Bool, fullscreen, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
@@ -119,6 +120,14 @@ CUSTOM_CVAR(Int, gl_vid_multisample, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_
 }
 
 EXTERN_CVAR(Bool, gl_smooth_rendered)
+
+extern int  paused;
+extern bool g_isTicFrozen;
+
+EXTERN_CVAR(Int, vid_vsync)
+
+CVAR(Int, vid_vsync_auto_switch_frames, 10, CVAR_ARCHIVE | CVAR_GLOBALCONFIG);
+CVAR(Int, vid_vsync_auto_fps, 60, CVAR_ARCHIVE | CVAR_GLOBALCONFIG);
 
 
 RenderBufferOptions rbOpts;
@@ -340,6 +349,35 @@ private:
 // ---------------------------------------------------------------------------
 
 
+class PostProcess
+{
+public:
+	explicit PostProcess(const RenderTarget* const sharedDepth = NULL);
+	~PostProcess();
+
+	void Init(const char* const shaderName, const GLsizei width, const GLsizei height);
+	void Release();
+
+	bool IsInitialized() const;
+
+	void Start();
+	void Finish();
+
+private:
+	GLsizei m_width;
+	GLsizei m_height;
+
+	RenderTarget*  m_renderTarget;
+	FShader*       m_shader;
+
+	const RenderTarget* m_sharedDepth;
+
+}; // class PostProcess
+
+
+// ---------------------------------------------------------------------------
+
+
 struct CapabilityChecker
 {
 	CapabilityChecker();
@@ -363,8 +401,19 @@ public:
 
 	void SetSmoothPicture(const bool smooth);
 
+	PostProcess* GetPostProcess() { return &m_postProcess; }
+
 private:
 	RenderTarget m_renderTarget;
+
+	PostProcess  m_postProcess;
+
+	uint32_t     m_frame;
+	uint32_t     m_framesToSwitchVSync;
+	uint32_t     m_lastFrame;
+	uint32_t     m_lastFrameTime;
+
+	void UpdateAutomaticVSync();
 
 	void DrawRenderTarget();
 
@@ -885,7 +934,7 @@ CocoaFrameBuffer::CocoaFrameBuffer(int width, int height, bool fullscreen)
 	memcpy(m_palette, GPalette.BaseColors, sizeof(PalEntry) * 256);
 	UpdateColors();
 
-	SetVSync(vid_vsync);
+	SetVSync(vid_vsync > 0);
 }
 
 
@@ -1382,6 +1431,150 @@ GLuint RenderTarget::GetBoundID()
 // ---------------------------------------------------------------------------
 
 
+PostProcess::PostProcess(const RenderTarget* const sharedDepth)
+: m_width       (0   )
+, m_height      (0   )
+, m_renderTarget(NULL)
+, m_shader      (NULL)
+, m_sharedDepth (sharedDepth)
+{
+
+}
+
+PostProcess::~PostProcess()
+{
+	Release();
+}
+
+
+void PostProcess::Init(const char* const shaderName, const GLsizei width, const GLsizei height)
+{
+	assert(NULL != shaderName);
+	assert(width  > 0);
+	assert(height > 0);
+
+	Release();
+
+	m_width  = width;
+	m_height = height;
+
+	m_renderTarget = new RenderTarget(m_width, m_height);
+
+	m_shader = new FShader();
+	m_shader->Load("PostProcessing", "shaders/glsl/main.vp", shaderName, NULL, "");
+
+	const GLuint program = m_shader->GetHandle();
+
+	glUseProgram(program);
+	glUniform1i(glGetUniformLocation(program, "sampler0"), 0);
+	glUniform2f(glGetUniformLocation(program, "resolution"),
+		static_cast<GLfloat>(width), static_cast<GLfloat>(height));
+	glUseProgram(0);
+}
+
+void PostProcess::Release()
+{
+	if (NULL != m_shader)
+	{
+		delete m_shader;
+		m_shader = NULL;
+	}
+
+	if (NULL != m_renderTarget)
+	{
+		delete m_renderTarget;
+		m_renderTarget = NULL;
+	}
+
+	m_width  = 0;
+	m_height = 0;
+}
+
+
+bool PostProcess::IsInitialized() const
+{
+	// TODO: check other members?
+	return NULL != m_renderTarget;
+}
+
+
+void PostProcess::Start()
+{
+	assert(NULL != m_renderTarget);
+
+	m_renderTarget->Bind();
+}
+
+void PostProcess::Finish()
+{
+	m_renderTarget->Unbind();
+
+	m_renderTarget->GetColorTexture().Bind(0, 0);
+
+	m_shader->Bind(0.0f);
+	BoundTextureDraw2D(m_width, m_height);
+	glUseProgram(0);
+}
+
+
+// ---------------------------------------------------------------------------
+
+
+static PostProcess* GetPostProcess()
+{
+	CocoaOpenGLFrameBuffer* frameBuffer = static_cast<CocoaOpenGLFrameBuffer*>(screen);
+
+	return NULL == frameBuffer
+		? NULL
+		: frameBuffer->GetPostProcess();
+}
+
+
+CUSTOM_CVAR(Int, gl_postprocess, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCALL)
+{
+	PostProcess* const postProcess = GetPostProcess();
+
+	if (NULL != postProcess)
+	{
+		postProcess->Release();
+	}
+}
+
+
+bool IsPostProcessActive()
+{
+	return NULL != GetPostProcess() && gl_postprocess > 0;
+}
+
+void StartPostProcess()
+{
+	if (!IsPostProcessActive())
+	{
+		return;
+	}
+
+	PostProcess* const postProcess = GetPostProcess();
+
+	if (!postProcess->IsInitialized())
+	{
+		postProcess->Init("shaders/glsl/fxaa.fp", SCREENWIDTH, SCREENHEIGHT);
+	}
+
+	postProcess->Start();
+}
+
+void EndPostProcess()
+{
+	if (IsPostProcessActive())
+	{
+		GetPostProcess()->Finish();
+	}
+}
+
+
+// ---------------------------------------------------------------------------
+
+
 CapabilityChecker::CapabilityChecker()
 {
 	if (!(gl.flags & RFL_FRAMEBUFFER))
@@ -1399,6 +1592,11 @@ CapabilityChecker::CapabilityChecker()
 CocoaOpenGLFrameBuffer::CocoaOpenGLFrameBuffer(void* hMonitor, int width, int height, int bits, int refreshHz, bool fullscreen)
 : OpenGLFrameBuffer(hMonitor, width, height, bits, refreshHz, fullscreen)
 , m_renderTarget(width, height)
+, m_postProcess(&m_renderTarget)
+, m_frame(0)
+, m_framesToSwitchVSync(0)
+, m_lastFrame(0)
+, m_lastFrameTime(0)
 {
 	SetSmoothPicture(gl_smooth_rendered);
 
@@ -1419,6 +1617,11 @@ CocoaOpenGLFrameBuffer::CocoaOpenGLFrameBuffer(void* hMonitor, int width, int he
 	m_renderTarget.Bind();
 	glClear(GL_COLOR_BUFFER_BIT);
 	m_renderTarget.Unbind();
+
+	// Post-processing setup
+
+	GLRenderer->beforeRenderView = StartPostProcess;
+	GLRenderer->afterRenderView  = EndPostProcess;
 }
 
 
@@ -1434,6 +1637,8 @@ bool CocoaOpenGLFrameBuffer::Lock(bool buffered)
 
 void CocoaOpenGLFrameBuffer::Update()
 {
+	UpdateAutomaticVSync();
+
 	if (!CanUpdate())
 	{
 		GLRenderer->Flush();
@@ -1461,6 +1666,89 @@ void CocoaOpenGLFrameBuffer::GetScreenshotBuffer(const BYTE*& buffer, int& pitch
 	Super::GetScreenshotBuffer(buffer, pitch, color_type);
 
 	m_renderTarget.Unbind();
+}
+
+
+static bool IsVSyncEnabled()
+{
+	GLint result = 0;
+
+	[[NSOpenGLContext currentContext] getValues:&result
+								   forParameter:NSOpenGLCPSwapInterval];
+
+	return result;
+}
+
+void CocoaOpenGLFrameBuffer::UpdateAutomaticVSync()
+{
+	++m_frame;
+
+	// Check and update vertical synchromization state of OpenGL context
+	// if automatic VSync is not active or game is not running (menu, console, pause etc)
+
+	const bool isVSync = IsVSyncEnabled();
+	const bool isGameRunning = GS_LEVEL == gamestate
+		&& !paused
+		&& !g_isTicFrozen
+		&& MENU_Off == menuactive
+		&& c_up == ConsoleState;
+
+	if (2 != vid_vsync || !isGameRunning)
+	{
+		m_framesToSwitchVSync = 0;
+		m_lastFrame           = 0;
+		m_lastFrameTime       = 0;
+
+		if (0 == vid_vsync && isVSync)
+		{
+			SetVSync(0);
+		}
+		else if (vid_vsync > 0 && !isVSync)
+		{
+			SetVSync(1);
+		}
+
+		return;
+	}
+
+	// Update automatic VSync state
+	// and change corresponding OpenGL context parameter if needed
+
+	const uint32_t frameTime = I_MSTime();
+
+	if (0 != m_lastFrameTime && frameTime != m_lastFrameTime)
+	{
+		const uint32_t fps = 1000 / (frameTime - m_lastFrameTime);
+
+		if (   ( isVSync && fps <  vid_vsync_auto_fps)
+			|| (!isVSync && fps >= vid_vsync_auto_fps) )
+
+		{
+			if (m_frame == m_lastFrame + 1)
+			{
+				++m_framesToSwitchVSync;
+			}
+			else
+			{
+				m_framesToSwitchVSync = 0;
+			}
+
+			m_lastFrame = m_frame;
+		}
+		else
+		{
+			m_framesToSwitchVSync = 0;
+		}
+	}
+
+	if (m_framesToSwitchVSync >= vid_vsync_auto_switch_frames)
+	{
+		SetVSync(isVSync ? 0 : 1);
+
+		m_framesToSwitchVSync = 0;
+	}
+
+	m_lastFrameTime = frameTime;
 }
 
 

@@ -39,6 +39,7 @@
 // Avoid collision between DObject class and Objective-C
 #define Class ObjectClass
 
+#include "b_bot.h"
 #include "c_console.h"
 #include "c_cvars.h"
 #include "cmdlib.h"
@@ -46,6 +47,7 @@
 #include "doomerrors.h"
 #include "i_system.h"
 #include "m_argv.h"
+#include "m_misc.h"
 #include "s_sound.h"
 #include "version.h"
 
@@ -63,7 +65,7 @@
 
 EXTERN_CVAR(Int,  vid_defwidth )
 EXTERN_CVAR(Int,  vid_defheight)
-EXTERN_CVAR(Bool, vid_vsync    )
+EXTERN_CVAR(Int,  vid_vsync    )
 EXTERN_CVAR(Bool, fullscreen   )
 
 
@@ -165,6 +167,24 @@ void NewFailure()
 }
 
 
+void CopyBotsFile()
+{
+	const FString result = M_GetCajunPath(BOTFILENAME);
+
+	if (FileExists(result))
+	{
+		return;
+	}
+
+	NSString* fileName = [NSString stringWithUTF8String:BOTFILENAME];
+	NSString* source   = [[NSBundle mainBundle] pathForAuxiliaryExecutable:fileName];
+
+	[[NSFileManager defaultManager] copyItemAtPath:source
+											toPath:[NSString stringWithUTF8String:result]
+											 error:nil];
+}
+
+
 int OriginalMain(int argc, char** argv)
 {
 	printf(GAMENAME" %s - %s - Cocoa version\nCompiled on %s\n\n",
@@ -179,12 +199,14 @@ int OriginalMain(int argc, char** argv)
 	setenv("LC_NUMERIC", "C", 1);
 	setlocale(LC_ALL, "C");
 
+	CopyBotsFile();
+
 	// Set reasonable default values for video settings
 
 	const NSSize screenSize = [[NSScreen mainScreen] frame].size;
 	vid_defwidth  = static_cast<int>(screenSize.width);
 	vid_defheight = static_cast<int>(screenSize.height);
-	vid_vsync     = true;
+	vid_vsync     = 1;
 	fullscreen    = true;
 
 	try

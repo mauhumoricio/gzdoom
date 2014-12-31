@@ -36,10 +36,11 @@ unsigned int I_FPSTime()
 }
 
 
+bool g_isTicFrozen;
+
+
 namespace
 {
-
-bool s_isTicFrozen;
 
 timespec GetNextTickTime()
 {
@@ -102,7 +103,7 @@ void* TimerThreadFunc(void*)
 		pthread_mutex_lock(&s_timerMutex);
 		pthread_cond_timedwait(&s_timerEvent, &s_timerMutex, &timeToNextTick);
 
-		if (!s_isTicFrozen)
+		if (!g_isTicFrozen)
 		{
 			// The following GCC/Clang intrinsic can be used instead of OS X specific function:
 			// __sync_add_and_fetch(&s_tics, 1);
@@ -133,7 +134,7 @@ int GetTimeThreaded(bool saveMS)
 
 int WaitForTicThreaded(int prevTic)
 {
-	assert(!s_isTicFrozen);
+	assert(!g_isTicFrozen);
 
 	while (s_tics <= prevTic)
 	{
@@ -147,7 +148,7 @@ int WaitForTicThreaded(int prevTic)
 
 void FreezeTimeThreaded(bool frozen)
 {
-	s_isTicFrozen = frozen;
+	g_isTicFrozen = frozen;
 }
 
 } // unnamed namespace
