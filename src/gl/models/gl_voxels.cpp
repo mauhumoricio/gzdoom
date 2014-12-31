@@ -52,6 +52,7 @@
 
 #include "gl/system/gl_interface.h"
 #include "gl/renderer/gl_renderer.h"
+#include "gl/data/gl_data.h"
 #include "gl/data/gl_vertexbuffer.h"
 #include "gl/scene/gl_drawinfo.h"
 #include "gl/models/gl_models.h"
@@ -498,7 +499,18 @@ int FVoxelModel::FindFrame(const char * name)
 
 //===========================================================================
 //
-// 
+// Voxels need aspect ratio correction according to the current map's setting
+//
+//===========================================================================
+
+float FVoxelModel::getAspectFactor()
+{
+	return glset.pixelstretch;
+}
+
+//===========================================================================
+//
+// Voxels never interpolate between frames, they only have one.
 //
 //===========================================================================
 
