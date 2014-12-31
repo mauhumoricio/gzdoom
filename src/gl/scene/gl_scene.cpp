@@ -228,13 +228,12 @@ void FGLRenderer::SetViewport(GL_IRECT *bounds)
 //
 //-----------------------------------------------------------------------------
 
-void FGLRenderer::SetCameraPos(fixed_t viewx, fixed_t viewy, fixed_t viewz, angle_t viewangle)
+void FGLRenderer::SetViewAngle(angle_t viewangle)
 {
 	float fviewangle=(float)(viewangle>>ANGLETOFINESHIFT)*360.0f/FINEANGLES;
 
 	mAngles.Yaw = 270.0f-fviewangle;
 	mViewVector = FVector2(cos(DEG2RAD(fviewangle)), sin(DEG2RAD(fviewangle)));
-	mCameraPos = FVector3(FIXED2FLOAT(viewx), FIXED2FLOAT(viewy), FIXED2FLOAT(viewz));
 
 	R_SetViewAngle();
 }
@@ -286,7 +285,7 @@ void FGLRenderer::SetProjection(float fov, float ratio, float fovratio)
 //
 //-----------------------------------------------------------------------------
 
-void FGLRenderer::SetViewMatrix(bool mirror, bool planemirror)
+void FGLRenderer::SetViewMatrix(fixed_t viewx, fixed_t viewy, fixed_t viewz, bool mirror, bool planemirror)
 {
 	if (gl.shadermodel >= 4)
 	{
@@ -302,12 +301,12 @@ void FGLRenderer::SetViewMatrix(bool mirror, bool planemirror)
 	glLoadIdentity();
 
 	float mult = mirror? -1:1;
-	float planemult = planemirror? -1:1;
+	float planemult = planemirror? -glset.pixelstretch : glset.pixelstretch;
 
 	glRotatef(GLRenderer->mAngles.Roll,  0.0f, 0.0f, 1.0f);
 	glRotatef(GLRenderer->mAngles.Pitch, 1.0f, 0.0f, 0.0f);
 	glRotatef(GLRenderer->mAngles.Yaw,   0.0f, mult, 0.0f);
-	glTranslatef( GLRenderer->mCameraPos.X * mult, -GLRenderer->mCameraPos.Z*planemult, -GLRenderer->mCameraPos.Y);
+	glTranslatef(FIXED2FLOAT(viewx) * mult, -FIXED2FLOAT(viewz) * planemult , -FIXED2FLOAT(viewy));
 	glScalef(-mult, planemult, 1);
 }
 
@@ -320,8 +319,8 @@ void FGLRenderer::SetViewMatrix(bool mirror, bool planemirror)
 //-----------------------------------------------------------------------------
 void FGLRenderer::SetupView(fixed_t viewx, fixed_t viewy, fixed_t viewz, angle_t viewangle, bool mirror, bool planemirror)
 {
-	SetCameraPos(viewx, viewy, viewz, viewangle);
-	SetViewMatrix(mirror, planemirror);
+	SetViewAngle(viewangle);
+	SetViewMatrix(viewx, viewy, viewz, mirror, planemirror);
 }
 
 //-----------------------------------------------------------------------------
@@ -875,7 +874,17 @@ sector_t * FGLRenderer::RenderViewpoint (AActor * camera, GL_IRECT * bounds, flo
 	sector_t * retval;
 	R_SetupFrame (camera);
 	SetViewArea();
-	mAngles.Pitch = clamp<float>((float)((double)(int)(viewpitch))/ANGLE_1, -90, 90);
+
+	// We have to scale the pitch to account for the pixel stretching, because the playsim doesn't know about this and treats it as 1:1.
+	double radPitch = bam2rad(viewpitch);
+	if (radPitch > PI) radPitch -= 2 * PI;
+	radPitch = clamp(radPitch, -PI / 2, PI / 2);
+
+	double angx = cos(radPitch);
+	double angy = sin(radPitch) * glset.pixelstretch;
+	double alen = sqrt(angx*angx + angy*angy);
+
+	mAngles.Pitch = (float)RAD2DEG(asin(angy / alen));
 
 	// Scroll the sky
 	mSky1Pos = (float)fmod(gl_frameMS * level.skyspeed1, 1024.f) * 90.f/256.f;
@@ -898,8 +907,8 @@ sector_t * FGLRenderer::RenderViewpoint (AActor * camera, GL_IRECT * bounds, flo
 	SetViewport(bounds);
 	mCurrentFoV = fov;
 	SetProjection(fov, ratio, fovratio);	// switch to perspective mode and set up clipper
-	SetCameraPos(viewx, viewy, viewz, viewangle);
-	SetViewMatrix(false, false);
+	SetViewAngle(viewangle);
+	SetViewMatrix(viewx, viewy, viewz, false, false);
 
 	clipper.Clear();
 	angle_t a1 = FrustumAngle();
@@ -954,16 +963,15 @@ void FGLRenderer::RenderView (player_t* player)
 
 
 	// I stopped using BaseRatioSizes here because the information there wasn't well presented.
-	#define RMUL (1.6f/1.333333f)
 	//							4:3				16:9		16:10		17:10		5:4
-	static float ratios[]={RMUL*1.333333f, RMUL*1.777777f, RMUL*1.6f, RMUL*1.7f, RMUL*1.25f};
+	static float ratios[]={1.333333f, 1.777777f, 1.6f, 1.7f, 1.25f};
 
 	// now render the main view
 	float fovratio;
 	float ratio = ratios[WidescreenRatio];
 	if (!(WidescreenRatio&4))
 	{
-		fovratio = 1.6f;
+		fovratio = 1.333333f;
 	}
 	else
 	{
