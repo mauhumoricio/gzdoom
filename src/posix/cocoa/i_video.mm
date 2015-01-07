@@ -2,7 +2,7 @@
  ** i_video.mm
  **
  **---------------------------------------------------------------------------
- ** Copyright 2012-2014 Alexey Lysiuk
+ ** Copyright 2012-2015 Alexey Lysiuk
  ** All rights reserved.
  **
  ** Redistribution and use in source and binary forms, with or without
@@ -33,11 +33,8 @@
 
 #include <GL/glew.h>
 
-#import <AppKit/NSButton.h>
-#import <AppKit/NSCursor.h>
-#import <AppKit/NSImage.h>
-#import <AppKit/NSOpenGL.h>
-#import <AppKit/NSOpenGLView.h>
+#include "i_common.h"
+
 #import <Carbon/Carbon.h>
 
 // Avoid collision between DObject class and Objective-C
@@ -64,9 +61,6 @@
 #include "gl/system/gl_framebuffer.h"
 #include "gl/system/gl_interface.h"
 #include "gl/utility/gl_clock.h"
-
-#include "i_common.h"
-#include "i_rbopts.h"
 
 #undef Class
 
