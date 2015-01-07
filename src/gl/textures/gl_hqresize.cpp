@@ -43,7 +43,6 @@
 
 #ifdef GZ_USE_LIBDISPATCH
 #include <dispatch/dispatch.h>
-#include "cocoa/i_osversion.h"
 #endif // GZ_USE_LIBDISPATCH
 
 #include "gl/system/gl_system.h"
@@ -255,7 +254,8 @@ static void xbrzNx(const size_t scale, const size_t width, const size_t height, 
 	const size_t thresholdWidth  = gl_texture_hqresize_mt_width;
 	const size_t thresholdHeight = gl_texture_hqresize_mt_height;
 
-	if (darwinVersion.major >= 10
+	if (   NULL != dispatch_get_global_queue
+		&& NULL != dispatch_apply
 		&& gl_texture_hqresize_multithread
 		&& width  > thresholdWidth
 		&& height > thresholdHeight)

@@ -3518,25 +3518,10 @@
 		8AF3DF4E1778323600474776 /* updaterevision */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = updaterevision; sourceTree = BUILT_PRODUCTS_DIR; };
 		8AF562781A530C4E000F0B60 /* critsec.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = critsec.cpp; sourceTree = "<group>"; };
 		8AF562791A530C4E000F0B60 /* critsec.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = critsec.h; sourceTree = "<group>"; };
-		8AF5627B1A530C4E000F0B60 /* HID_Config_Utilities.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = HID_Config_Utilities.c; sourceTree = "<group>"; };
-		8AF5627C1A530C4E000F0B60 /* HID_Error_Handler.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = HID_Error_Handler.c; sourceTree = "<group>"; };
-		8AF5627D1A530C4E000F0B60 /* HID_Name_Lookup.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = HID_Name_Lookup.c; sourceTree = "<group>"; };
-		8AF5627E1A530C4E000F0B60 /* HID_Queue_Utilities.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = HID_Queue_Utilities.c; sourceTree = "<group>"; };
-		8AF5627F1A530C4E000F0B60 /* HID_Utilities.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = HID_Utilities.c; sourceTree = "<group>"; };
-		8AF562801A530C4E000F0B60 /* HID_Utilities_External.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HID_Utilities_External.h; sourceTree = "<group>"; };
-		8AF562811A530C4E000F0B60 /* ImmrHIDUtilAddOn.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ImmrHIDUtilAddOn.c; sourceTree = "<group>"; };
-		8AF562821A530C4E000F0B60 /* ImmrHIDUtilAddOn.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImmrHIDUtilAddOn.h; sourceTree = "<group>"; };
-		8AF562831A530C4E000F0B60 /* IOHIDDevice_.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = IOHIDDevice_.c; sourceTree = "<group>"; };
-		8AF562841A530C4E000F0B60 /* IOHIDDevice_.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IOHIDDevice_.h; sourceTree = "<group>"; };
-		8AF562851A530C4E000F0B60 /* IOHIDElement_.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = IOHIDElement_.c; sourceTree = "<group>"; };
-		8AF562861A530C4E000F0B60 /* IOHIDElement_.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IOHIDElement_.h; sourceTree = "<group>"; };
-		8AF562871A530C4E000F0B60 /* IOHIDLib_.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IOHIDLib_.h; sourceTree = "<group>"; };
 		8AF562881A530C4E000F0B60 /* i_common.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = i_common.h; sourceTree = "<group>"; };
 		8AF562891A530C4E000F0B60 /* i_input.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = i_input.mm; sourceTree = "<group>"; };
 		8AF5628A1A530C4E000F0B60 /* i_joystick.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = i_joystick.cpp; sourceTree = "<group>"; };
 		8AF5628B1A530C4E000F0B60 /* i_main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = i_main.mm; sourceTree = "<group>"; };
-		8AF5628C1A530C4E000F0B60 /* i_osversion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = i_osversion.h; sourceTree = "<group>"; };
-		8AF5628D1A530C4E000F0B60 /* i_rbopts.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = i_rbopts.h; sourceTree = "<group>"; };
 		8AF5628E1A530C4E000F0B60 /* i_timer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = i_timer.cpp; sourceTree = "<group>"; };
 		8AF5628F1A530C4E000F0B60 /* i_video.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = i_video.mm; sourceTree = "<group>"; };
 		8AF562901A530C4E000F0B60 /* sdlglvideo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sdlglvideo.h; sourceTree = "<group>"; };
@@ -6670,40 +6655,17 @@
 		8AF562771A530C4E000F0B60 /* cocoa */ = {
 			isa = PBXGroup;
 			children = (
-				8AF5627A1A530C4E000F0B60 /* hid */,
 				8AF562781A530C4E000F0B60 /* critsec.cpp */,
 				8AF562791A530C4E000F0B60 /* critsec.h */,
 				8AF562881A530C4E000F0B60 /* i_common.h */,
 				8AF562891A530C4E000F0B60 /* i_input.mm */,
 				8AF5628A1A530C4E000F0B60 /* i_joystick.cpp */,
 				8AF5628B1A530C4E000F0B60 /* i_main.mm */,
-				8AF5628C1A530C4E000F0B60 /* i_osversion.h */,
-				8AF5628D1A530C4E000F0B60 /* i_rbopts.h */,
 				8AF5628E1A530C4E000F0B60 /* i_timer.cpp */,
 				8AF5628F1A530C4E000F0B60 /* i_video.mm */,
 				8AF562901A530C4E000F0B60 /* sdlglvideo.h */,
 			);
 			path = cocoa;
-			sourceTree = "<group>";
-		};
-		8AF5627A1A530C4E000F0B60 /* hid */ = {
-			isa = PBXGroup;
-			children = (
-				8AF5627B1A530C4E000F0B60 /* HID_Config_Utilities.c */,
-				8AF5627C1A530C4E000F0B60 /* HID_Error_Handler.c */,
-				8AF5627D1A530C4E000F0B60 /* HID_Name_Lookup.c */,
-				8AF5627E1A530C4E000F0B60 /* HID_Queue_Utilities.c */,
-				8AF5627F1A530C4E000F0B60 /* HID_Utilities.c */,
-				8AF562801A530C4E000F0B60 /* HID_Utilities_External.h */,
-				8AF562811A530C4E000F0B60 /* ImmrHIDUtilAddOn.c */,
-				8AF562821A530C4E000F0B60 /* ImmrHIDUtilAddOn.h */,
-				8AF562831A530C4E000F0B60 /* IOHIDDevice_.c */,
-				8AF562841A530C4E000F0B60 /* IOHIDDevice_.h */,
-				8AF562851A530C4E000F0B60 /* IOHIDElement_.c */,
-				8AF562861A530C4E000F0B60 /* IOHIDElement_.h */,
-				8AF562871A530C4E000F0B60 /* IOHIDLib_.h */,
-			);
-			path = hid;
 			sourceTree = "<group>";
 		};
 		8AF562991A530C4E000F0B60 /* osx */ = {
