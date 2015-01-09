@@ -129,6 +129,23 @@
 		8A517FB819600F8700FAAB33 /* oalsound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAC19600F4400FAAB33 /* oalsound.cpp */; };
 		8A517FB919600F8E00FAAB33 /* sndfile_decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAE19600F4400FAAB33 /* sndfile_decoder.cpp */; };
 		8A517FBA19600F9200FAAB33 /* sndfile_decoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A517FAE19600F4400FAAB33 /* sndfile_decoder.cpp */; };
+		8A51EE6A1A5FCB5500D083A8 /* libSDL2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A51EE691A5FCB5500D083A8 /* libSDL2.a */; };
+		8A51EE6C1A5FCCC500D083A8 /* ForceFeedback.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A51EE6B1A5FCCC500D083A8 /* ForceFeedback.framework */; };
+		8A51EE6D1A5FCD3500D083A8 /* hardware.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562A11A530C4E000F0B60 /* hardware.cpp */; };
+		8A51EE6E1A5FCD3500D083A8 /* i_gui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562A21A530C4E000F0B60 /* i_gui.cpp */; };
+		8A51EE6F1A5FCD3500D083A8 /* i_input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562A31A530C4E000F0B60 /* i_input.cpp */; };
+		8A51EE701A5FCD3500D083A8 /* i_joystick.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562A41A530C4E000F0B60 /* i_joystick.cpp */; };
+		8A51EE711A5FCD3500D083A8 /* i_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562A51A530C4E000F0B60 /* i_main.cpp */; };
+		8A51EE721A5FCD3500D083A8 /* i_system.mm in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562A61A530C4E000F0B60 /* i_system.mm */; };
+		8A51EE731A5FCD3500D083A8 /* i_timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562A71A530C4E000F0B60 /* i_timer.cpp */; };
+		8A51EE741A5FCD3500D083A8 /* sdlglvideo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562A81A530C4E000F0B60 /* sdlglvideo.cpp */; };
+		8A51EE751A5FCD3500D083A8 /* sdlvideo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562AA1A530C4E000F0B60 /* sdlvideo.cpp */; };
+		8A51EE761A5FCD4C00D083A8 /* i_cd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562931A530C4E000F0B60 /* i_cd.cpp */; };
+		8A51EE771A5FCD4C00D083A8 /* i_movie.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562951A530C4E000F0B60 /* i_movie.cpp */; };
+		8A51EE781A5FCD4C00D083A8 /* i_steam.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562961A530C4E000F0B60 /* i_steam.cpp */; };
+		8A51EE791A5FCD4C00D083A8 /* i_system.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562971A530C4E000F0B60 /* i_system.cpp */; };
+		8A51EE7A1A5FCD4C00D083A8 /* st_start.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562AC1A530C4E000F0B60 /* st_start.cpp */; };
+		8A51EE7B1A5FCD7A00D083A8 /* iwadpicker_cocoa.mm in Sources */ = {isa = PBXBuildFile; fileRef = 8AF5629A1A530C4E000F0B60 /* iwadpicker_cocoa.mm */; };
 		8A6227A21A18E0C4004235B1 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A74F4661392532C001F54B0 /* Carbon.framework */; };
 		8A651FF6191E69EB009DB9CD /* glew.c in Sources */ = {isa = PBXBuildFile; fileRef = 8A651FF5191E69E3009DB9CD /* glew.c */; };
 		8A651FFB191E6A39009DB9CD /* libglew_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A651FED191E6988009DB9CD /* libglew_gzdoom.a */; };
@@ -1046,7 +1063,6 @@
 		8AF562BE1A530D28000F0B60 /* i_steam.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562961A530C4E000F0B60 /* i_steam.cpp */; };
 		8AF562BF1A530D28000F0B60 /* i_system.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562971A530C4E000F0B60 /* i_system.cpp */; };
 		8AF562C01A530D28000F0B60 /* st_start.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF562AC1A530C4E000F0B60 /* st_start.cpp */; };
-		8AF62EBE142F25D0003F3556 /* libSDL_gzdoom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8AF62EB3142F259E003F3556 /* libSDL_gzdoom.a */; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
 /* End PBXBuildFile section */
 
@@ -1106,13 +1122,6 @@
 			proxyType = 1;
 			remoteGlobalIDString = 8D1107260486CEB800E47090;
 			remoteInfo = GZDoom_SDL;
-		};
-		8A2AD157142F281400149995 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 8AF62EA6142F259E003F3556 /* SDL.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = BECDF66D0761BA81005FE872;
-			remoteInfo = "Static Library";
 		};
 		8A651FF7191E6A1C009DB9CD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -1282,41 +1291,6 @@
 			remoteGlobalIDString = 8AF3DF611778359500474776;
 			remoteInfo = gitinfo.h;
 		};
-		8AF62EB2142F259E003F3556 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 8AF62EA6142F259E003F3556 /* SDL.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = BECDF6B30761BA81005FE872;
-			remoteInfo = "Static Library";
-		};
-		8AF62EB4142F259E003F3556 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 8AF62EA6142F259E003F3556 /* SDL.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = BECDF66C0761BA81005FE872;
-			remoteInfo = Framework;
-		};
-		8AF62EB6142F259E003F3556 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 8AF62EA6142F259E003F3556 /* SDL.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = BECDF6BA0761BA81005FE872;
-			remoteInfo = "Main Library";
-		};
-		8AF62EB8142F259E003F3556 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 8AF62EA6142F259E003F3556 /* SDL.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = BECDF6BE0761BA81005FE872;
-			remoteInfo = "Standard DMG";
-		};
-		8AF62EBA142F259E003F3556 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 8AF62EA6142F259E003F3556 /* SDL.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = BECDF6C30761BA81005FE872;
-			remoteInfo = "Developer Extras Package";
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -1399,6 +1373,8 @@
 		8A517FAD19600F4400FAAB33 /* oalsound.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = oalsound.h; sourceTree = "<group>"; };
 		8A517FAE19600F4400FAAB33 /* sndfile_decoder.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sndfile_decoder.cpp; sourceTree = "<group>"; };
 		8A517FAF19600F4400FAAB33 /* sndfile_decoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sndfile_decoder.h; sourceTree = "<group>"; };
+		8A51EE691A5FCB5500D083A8 /* libSDL2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2.a; path = thirdparty/SDL2/lib/libSDL2.a; sourceTree = "<group>"; };
+		8A51EE6B1A5FCCC500D083A8 /* ForceFeedback.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ForceFeedback.framework; path = System/Library/Frameworks/ForceFeedback.framework; sourceTree = SDKROOT; };
 		8A651FED191E6988009DB9CD /* libglew_gzdoom.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libglew_gzdoom.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A651FF1191E69E3009DB9CD /* glew.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = glew.h; sourceTree = "<group>"; };
 		8A651FF2191E69E3009DB9CD /* glxew.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = glxew.h; sourceTree = "<group>"; };
@@ -3548,7 +3524,6 @@
 		8AF562AA1A530C4E000F0B60 /* sdlvideo.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sdlvideo.cpp; sourceTree = "<group>"; };
 		8AF562AB1A530C4E000F0B60 /* sdlvideo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sdlvideo.h; sourceTree = "<group>"; };
 		8AF562AC1A530C4E000F0B60 /* st_start.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = st_start.cpp; sourceTree = "<group>"; };
-		8AF62EA6142F259E003F3556 /* SDL.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SDL.xcodeproj; path = thirdparty/SDL/Xcode/SDL/SDL.xcodeproj; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* GZDoom-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = "GZDoom-Info.plist"; path = "misc/resources/GZDoom-Info.plist"; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* GZDoom_SDL.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GZDoom_SDL.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -3621,6 +3596,7 @@
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
 				8A1D33BF154D6F1800BA2C16 /* CoreAudio.framework in Frameworks */,
 				8A1D33C0154D6F1800BA2C16 /* CoreMIDI.framework in Frameworks */,
+				8A51EE6C1A5FCCC500D083A8 /* ForceFeedback.framework in Frameworks */,
 				8A74F38F13925284001F54B0 /* IOKit.framework in Frameworks */,
 				8A805D1119604796009AF921 /* OpenAL.framework in Frameworks */,
 				8A74F2A2139235E0001F54B0 /* OpenGL.framework in Frameworks */,
@@ -3628,7 +3604,7 @@
 				8A1D33E8154D6FF900BA2C16 /* libiconv.dylib in Frameworks */,
 				8AF27A491390F4910095D9A0 /* libz.dylib in Frameworks */,
 				8A74F2BA1392360F001F54B0 /* libfmodex.dylib in Frameworks */,
-				8AF62EBE142F25D0003F3556 /* libSDL_gzdoom.a in Frameworks */,
+				8A51EE6A1A5FCB5500D083A8 /* libSDL2.a in Frameworks */,
 				8A805D17196048AC009AF921 /* libFLAC.a in Frameworks */,
 				8A1D337F154D6E2300BA2C16 /* libfluidsynth.a in Frameworks */,
 				8A1D33E3154D6F8900BA2C16 /* libglib-2.0.a in Frameworks */,
@@ -3714,12 +3690,12 @@
 		29B97323FDCFA39411CA2CEA /* Dependencies */ = {
 			isa = PBXGroup;
 			children = (
-				8AF62EA6142F259E003F3556 /* SDL.xcodeproj */,
 				8A74F450139252F9001F54B0 /* AudioUnit.framework */,
 				8A74F4661392532C001F54B0 /* Carbon.framework */,
 				1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */,
 				8A1D33B2154D6EEF00BA2C16 /* CoreAudio.framework */,
 				8A1D33A7154D6EC000BA2C16 /* CoreMIDI.framework */,
+				8A51EE6B1A5FCCC500D083A8 /* ForceFeedback.framework */,
 				8A74F38E13925284001F54B0 /* IOKit.framework */,
 				8A805D0F19604786009AF921 /* OpenAL.framework */,
 				8A74F2A1139235E0001F54B0 /* OpenGL.framework */,
@@ -3727,6 +3703,7 @@
 				8A1D33E6154D6FD200BA2C16 /* libiconv.dylib */,
 				8AF27A461390F47C0095D9A0 /* libz.dylib */,
 				8A74F2B91392360F001F54B0 /* libfmodex.dylib */,
+				8A51EE691A5FCB5500D083A8 /* libSDL2.a */,
 				8A805D1219604887009AF921 /* libFLAC.a */,
 				8A1D337D154D6E0700BA2C16 /* libfluidsynth.a */,
 				8A1D33E1154D6F8900BA2C16 /* libglib-2.0.a */,
@@ -6696,18 +6673,6 @@
 			path = sdl;
 			sourceTree = "<group>";
 		};
-		8AF62EA7142F259E003F3556 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				8AF62EB3142F259E003F3556 /* libSDL_gzdoom.a */,
-				8AF62EB5142F259E003F3556 /* SDL.framework */,
-				8AF62EB7142F259E003F3556 /* libSDLmain.a */,
-				8AF62EB9142F259E003F3556 /* Standard DMG */,
-				8AF62EBB142F259E003F3556 /* Developer Extras Package */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -6909,7 +6874,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				8A2AD158142F281400149995 /* PBXTargetDependency */,
 				8AF3DF6D1778361300474776 /* PBXTargetDependency */,
 				49440B1113C1BFDA00646B56 /* PBXTargetDependency */,
 				49E91DE71393BFB000CCEBBC /* PBXTargetDependency */,
@@ -6951,12 +6915,6 @@
 			);
 			mainGroup = 29B97314FDCFA39411CA2CEA /* GZDoom */;
 			projectDirPath = "";
-			projectReferences = (
-				{
-					ProductGroup = 8AF62EA7142F259E003F3556 /* Products */;
-					ProjectRef = 8AF62EA6142F259E003F3556 /* SDL.xcodeproj */;
-				},
-			);
 			projectRoot = "";
 			targets = (
 				8A9F52E814BB0F2900F3369B /* GZDoom_Cocoa */,
@@ -6979,44 +6937,6 @@
 			);
 		};
 /* End PBXProject section */
-
-/* Begin PBXReferenceProxy section */
-		8AF62EB3142F259E003F3556 /* libSDL_gzdoom.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libSDL_gzdoom.a;
-			remoteRef = 8AF62EB2142F259E003F3556 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		8AF62EB5142F259E003F3556 /* SDL.framework */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.framework;
-			path = SDL.framework;
-			remoteRef = 8AF62EB4142F259E003F3556 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		8AF62EB7142F259E003F3556 /* libSDLmain.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libSDLmain.a;
-			remoteRef = 8AF62EB6142F259E003F3556 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		8AF62EB9142F259E003F3556 /* Standard DMG */ = {
-			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = "Standard DMG";
-			remoteRef = 8AF62EB8142F259E003F3556 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		8AF62EBB142F259E003F3556 /* Developer Extras Package */ = {
-			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = "Developer Extras Package";
-			remoteRef = 8AF62EBA142F259E003F3556 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-/* End PBXReferenceProxy section */
 
 /* Begin PBXResourcesBuildPhase section */
 		8A9F52FF14BB0F2900F3369B /* Resources */ = {
@@ -7916,6 +7836,21 @@
 				8A08C7CE1A29DACD00371DB4 /* nukedopl3.cpp in Sources */,
 				8AF28125139126C00095D9A0 /* opl_mus_player.cpp in Sources */,
 				8AA9A1981660E8DC007F75A4 /* OPL3.cpp in Sources */,
+				8A51EE7B1A5FCD7A00D083A8 /* iwadpicker_cocoa.mm in Sources */,
+				8A51EE6D1A5FCD3500D083A8 /* hardware.cpp in Sources */,
+				8A51EE6E1A5FCD3500D083A8 /* i_gui.cpp in Sources */,
+				8A51EE6F1A5FCD3500D083A8 /* i_input.cpp in Sources */,
+				8A51EE701A5FCD3500D083A8 /* i_joystick.cpp in Sources */,
+				8A51EE711A5FCD3500D083A8 /* i_main.cpp in Sources */,
+				8A51EE721A5FCD3500D083A8 /* i_system.mm in Sources */,
+				8A51EE731A5FCD3500D083A8 /* i_timer.cpp in Sources */,
+				8A51EE741A5FCD3500D083A8 /* sdlglvideo.cpp in Sources */,
+				8A51EE751A5FCD3500D083A8 /* sdlvideo.cpp in Sources */,
+				8A51EE761A5FCD4C00D083A8 /* i_cd.cpp in Sources */,
+				8A51EE771A5FCD4C00D083A8 /* i_movie.cpp in Sources */,
+				8A51EE781A5FCD4C00D083A8 /* i_steam.cpp in Sources */,
+				8A51EE791A5FCD4C00D083A8 /* i_system.cpp in Sources */,
+				8A51EE7A1A5FCD4C00D083A8 /* st_start.cpp in Sources */,
 				497C93EB13C5A6F800E6B4A8 /* colormaps.cpp in Sources */,
 				497C93EC13C5A6F800E6B4A8 /* r_interpolate.cpp in Sources */,
 				497C93ED13C5A6F800E6B4A8 /* r_translate.cpp in Sources */,
@@ -8191,11 +8126,6 @@
 			target = 8D1107260486CEB800E47090 /* GZDoom_SDL */;
 			targetProxy = 8A054ACA193B24AA00D7849E /* PBXContainerItemProxy */;
 		};
-		8A2AD158142F281400149995 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "Static Library";
-			targetProxy = 8A2AD157142F281400149995 /* PBXContainerItemProxy */;
-		};
 		8A651FF8191E6A1C009DB9CD /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 8A651FDB191E6988009DB9CD /* glew */;
@@ -8414,10 +8344,6 @@
 				CONFIGURATION_TEMP_DIR = "$(PROJECT_TEMP_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)_Cocoa";
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(DOOM_HEADER_SEARCH_PATHS)",
-					"$(LIBS_HEADER_SEARCH_PATHS)",
-					"$(TRDP_HEADER_SEARCH_PATHS)",
-					src/posix,
 					src/posix/cocoa,
 				);
 				INFOPLIST_FILE = "misc/resources/GZDoom-Info.plist";
@@ -8432,10 +8358,6 @@
 				CONFIGURATION_TEMP_DIR = "$(PROJECT_TEMP_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)_Cocoa";
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(DOOM_HEADER_SEARCH_PATHS)",
-					"$(LIBS_HEADER_SEARCH_PATHS)",
-					"$(TRDP_HEADER_SEARCH_PATHS)",
-					src/posix,
 					src/posix/cocoa,
 				);
 				INFOPLIST_FILE = "misc/resources/GZDoom-Info.plist";
@@ -8473,10 +8395,6 @@
 				CONFIGURATION_TEMP_DIR = "$(PROJECT_TEMP_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)_Cocoa";
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(DOOM_HEADER_SEARCH_PATHS)",
-					"$(LIBS_HEADER_SEARCH_PATHS)",
-					"$(TRDP_HEADER_SEARCH_PATHS)",
-					src/posix,
 					src/posix/cocoa,
 				);
 				INFOPLIST_FILE = "misc/resources/GZDoom-Info.plist";
@@ -8489,7 +8407,16 @@
 			baseConfigurationReference = 8A44602813BF0306007FA8E1 /* gzdoom.xcconfig */;
 			buildSettings = {
 				CONFIGURATION_TEMP_DIR = "$(PROJECT_TEMP_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)_SDL";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					thirdparty/SDL2/include,
+					src/posix/sdl,
+				);
 				INFOPLIST_FILE = "misc/resources/GZDoom-Info.plist";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					thirdparty/SDL2/lib,
+				);
 				PRODUCT_NAME = GZDoom_SDL;
 			};
 			name = MaxOptim;
@@ -8806,7 +8733,16 @@
 			baseConfigurationReference = 8A44602813BF0306007FA8E1 /* gzdoom.xcconfig */;
 			buildSettings = {
 				CONFIGURATION_TEMP_DIR = "$(PROJECT_TEMP_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)_SDL";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					thirdparty/SDL2/include,
+					src/posix/sdl,
+				);
 				INFOPLIST_FILE = "misc/resources/GZDoom-Info.plist";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					thirdparty/SDL2/lib,
+				);
 				PRODUCT_NAME = GZDoom_SDL;
 			};
 			name = Debug;
@@ -8816,7 +8752,16 @@
 			baseConfigurationReference = 8A44602813BF0306007FA8E1 /* gzdoom.xcconfig */;
 			buildSettings = {
 				CONFIGURATION_TEMP_DIR = "$(PROJECT_TEMP_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)_SDL";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					thirdparty/SDL2/include,
+					src/posix/sdl,
+				);
 				INFOPLIST_FILE = "misc/resources/GZDoom-Info.plist";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					thirdparty/SDL2/lib,
+				);
 				PRODUCT_NAME = GZDoom_SDL;
 			};
 			name = Release;
