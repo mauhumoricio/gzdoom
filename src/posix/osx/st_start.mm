@@ -91,10 +91,10 @@
 
 static NSColor* RGB(const BYTE red, const BYTE green, const BYTE blue)
 {
-	return [NSColor colorWithRed:red   / 255.0f
-						   green:green / 255.0f
-							blue:blue  / 255.0f
-						   alpha:1.0f];
+	return [NSColor colorWithCalibratedRed:red   / 255.0f
+									 green:green / 255.0f
+									  blue:blue  / 255.0f
+									 alpha:1.0f];
 }
 
 static NSColor* RGB(const PalEntry color)
