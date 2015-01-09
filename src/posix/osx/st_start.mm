@@ -36,6 +36,7 @@
 #include "d_main.h"
 #include "i_system.h"
 #include "st_start.h"
+#include "v_text.h"
 //#include "version.h"
 
 
@@ -125,13 +126,12 @@ public:
 	virtual bool NetLoop(bool (*timerCallback)(void*), void* userData);
 
 private:
-	NSWindow*     m_window;
-	NSTextView*   m_textView;
+	NSWindow*            m_window;
+	NSTextView*          m_textView;
 	NSProgressIndicator* m_progressBar;
 
-	//NSDictionary* m_defaultTextAttributes;
-
 	void AppendString(const char* message);
+	void AppendString(PalEntry color, const char* message);
 
 	static void PrintCallback(const char* message);
 };
@@ -149,23 +149,10 @@ FBasicStartupScreen::FBasicStartupScreen(int maxProgress, bool showBar)
 	if (showBar)
 	{
 		m_progressBar = [[NSProgressIndicator alloc] initWithFrame:NSMakeRect(4, 0, 504, 16)];
-		//[m_progressBar setControlTint:NSGraphiteControlTint];
 		[m_progressBar setIndeterminate:NO];
 		[m_progressBar setMaxValue:maxProgress];
 	}
 
-	//NSString* const title = [NSString stringWithFormat:@"%s %s - Console", GAMESIG, GetVersionString()];
-
-	[m_window initWithContentRect:NSMakeRect(0, 0, 512, 384)
-						styleMask:NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask
-						  backing:NSBackingStoreBuffered
-							defer:NO];
-	[m_window setTitle:@"Console"];
-	[m_window center];
-
-	//NSView* contentView = [[NSView alloc] initWithFrame:[[m_window contentView] frame]];
-
-	//NSScrollView* scrollView = [[NSScrollView alloc] initWithFrame:[[m_window contentView] frame]];
 	NSScrollView* scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 16, 512, 336)];
 	[scrollView setBorderType:NSNoBorder];
 	[scrollView setHasVerticalScroller:YES];
@@ -173,11 +160,6 @@ FBasicStartupScreen::FBasicStartupScreen(int maxProgress, bool showBar)
 	[scrollView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
 
 	NSSize contentSize = [scrollView contentSize];
-
-//	NSColor* backgroundColor = [NSColor colorWithRed:0.28f
-//											   green:0.28f
-//												blue:0.28f
-//											   alpha:1.00f];
 
 	[m_textView initWithFrame:NSMakeRect(0, 0, contentSize.width, contentSize.height)];
 	[m_textView setEditable:NO];
@@ -203,28 +185,55 @@ FBasicStartupScreen::FBasicStartupScreen(int maxProgress, bool showBar)
 	[titleText setSelectable:NO];
 	[titleText setBordered:NO];
 
+	//NSString* const title = [NSString stringWithFormat:@"%s %s - Console", GAMESIG, GetVersionString()];
+
+	[m_window initWithContentRect:NSMakeRect(0, 0, 512, 384)
+						styleMask:NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask
+						  backing:NSBackingStoreBuffered
+							defer:NO];
+	[m_window setTitle:@"Console"];
+	[m_window center];
+
 	NSView* contentView = [m_window contentView];
 	[contentView addSubview:m_progressBar];
 	[contentView addSubview:scrollView];
 	[contentView addSubview:titleText];
 
 	[m_window makeKeyAndOrderFront:nil];
-	[m_window makeFirstResponder:m_textView];
+	//[m_window makeFirstResponder:m_textView];
 
-	AppendString("OMG!!!!1111!!!!!111111!!!!! <<<<<<<<<<<<< This is very very very long message for testing word wrap feature! >>>>>>>>>\n");
-	AppendString("1");
-	AppendString("2");
-	AppendString("3");
-	AppendString("\n");
-
-	AppendString("\n\n\n\n\n\n\n\n");
+#ifdef _DEBUG
+	AppendString("----------------------------------------------------------------\n");
+	AppendString("1234567890 !@#$%^&*() ,<.>/?;:'\" [{]}\\| `~-_=+ "
+		"This is very very very long message needed to trigger word wrapping...\n\n");
+	AppendString("Multiline...\n\tmessage...\n\t\twith...\n\t\t\ttabs.\n\n");
+	
+	AppendString(TEXTCOLOR_BRICK "TEXTCOLOR_BRICK\n" TEXTCOLOR_TAN "TEXTCOLOR_TAN\n");
+	AppendString(TEXTCOLOR_GRAY "TEXTCOLOR_GRAY & TEXTCOLOR_GREY\n");
+	AppendString(TEXTCOLOR_GREEN "TEXTCOLOR_GREEN\n" TEXTCOLOR_BROWN "TEXTCOLOR_BROWN\n");
+	AppendString(TEXTCOLOR_GOLD "TEXTCOLOR_GOLD\n" TEXTCOLOR_RED "TEXTCOLOR_RED\n");
+	AppendString(TEXTCOLOR_BLUE "TEXTCOLOR_BLUE\n" TEXTCOLOR_ORANGE "TEXTCOLOR_ORANGE\n");
+	AppendString(TEXTCOLOR_WHITE "TEXTCOLOR_WHITE\n" TEXTCOLOR_YELLOW "TEXTCOLOR_YELLOW\n");
+	AppendString(TEXTCOLOR_UNTRANSLATED "TEXTCOLOR_UNTRANSLATED\n");
+	AppendString(TEXTCOLOR_BLACK "TEXTCOLOR_BLACK\n" TEXTCOLOR_LIGHTBLUE "TEXTCOLOR_LIGHTBLUE\n");
+	AppendString(TEXTCOLOR_CREAM "TEXTCOLOR_CREAM\n" TEXTCOLOR_OLIVE "TEXTCOLOR_OLIVE\n");
+	AppendString(TEXTCOLOR_DARKGREEN "TEXTCOLOR_DARKGREEN\n" TEXTCOLOR_DARKRED "TEXTCOLOR_DARKRED\n");
+	AppendString(TEXTCOLOR_DARKBROWN "TEXTCOLOR_DARKBROWN\n" TEXTCOLOR_PURPLE "TEXTCOLOR_PURPLE\n");
+	AppendString(TEXTCOLOR_DARKGRAY "TEXTCOLOR_DARKGRAY\n" TEXTCOLOR_CYAN "TEXTCOLOR_CYAN\n");
+	AppendString(TEXTCOLOR_NORMAL "TEXTCOLOR_NORMAL\n" TEXTCOLOR_BOLD "TEXTCOLOR_BOLD\n");
+	AppendString(TEXTCOLOR_CHAT "TEXTCOLOR_CHAT\n" TEXTCOLOR_TEAMCHAT "TEXTCOLOR_TEAMCHAT\n");
+	AppendString("----------------------------------------------------------------\n");
+#endif // _DEBUG
 
 	I_PrintToConsoleWindow = PrintCallback;
 }
 
 FBasicStartupScreen::~FBasicStartupScreen()
 {
-	//[m_window close];
+#ifndef _DEBUG
+	[m_window close];
+#endif // !_DEBUG
+
 	I_PrintToConsoleWindow = NULL;
 }
 
@@ -233,10 +242,20 @@ void FBasicStartupScreen::Progress()
 {
 	if (CurPos < MaxPos)
 	{
-		[m_progressBar setDoubleValue:CurPos++];
+		++CurPos;
 	}
 
-	[[NSRunLoop currentRunLoop] limitDateForMode:NSDefaultRunLoopMode];
+	static unsigned int previousTime = I_MSTime();
+	unsigned int currentTime = I_MSTime();
+
+	if (currentTime - previousTime > 50)
+	{
+		previousTime = currentTime;
+
+		[m_progressBar setDoubleValue:CurPos];
+
+		[[NSRunLoop currentRunLoop] limitDateForMode:NSDefaultRunLoopMode];
+	}
 }
 
 
@@ -266,33 +285,70 @@ bool FBasicStartupScreen::NetLoop(bool (*timerCallback)(void*), void* const user
 }
 
 
-void FBasicStartupScreen::AppendString(const char* const message)
+void FBasicStartupScreen::AppendString(const char* message)
 {
-	NSString* const text = [NSString stringWithUTF8String:message];
+	PalEntry color(223, 223, 223);
 
-	NSFont* font = [NSFont systemFontOfSize:14.0f];
-	//NSDictionary * fontAttributes = [[NSDictionary alloc] initWithObjectsAndKeys:systemFont, NSFontAttributeName, nil];
+	char buffer[1024]= {};
+	size_t pos = 0;
 
-//	NSColor* fontColor = [NSColor colorWithRed:0.88f
-//										 green:0.88f
-//										  blue:0.88f
-//										 alpha:1.00f];
-	//NSDictionary* attributes = [NSDictionary dictionaryWithObject:fontColor
-	//													   forKey:NSForegroundColorAttributeName];
+	while (*message != '\0')
+	{
+		if ((TEXTCOLOR_ESCAPE == *message && 0 != pos)
+			|| (pos == sizeof buffer - 1))
+		{
+			buffer[pos] = '\0';
+			pos = 0;
 
-	NSDictionary* attributes = [NSDictionary dictionaryWithObjectsAndKeys:font,
-		NSFontAttributeName, RGB(223, 223, 223), NSForegroundColorAttributeName, nil];
+			AppendString(color, buffer);
+		}
 
-	NSAttributedString* const formattedText = [[NSAttributedString alloc] initWithString:text
-																			  attributes:attributes];
-	[[m_textView textStorage] appendAttributedString:formattedText];
+		if (TEXTCOLOR_ESCAPE == *message)
+		{
+			const BYTE* colorID = reinterpret_cast<const BYTE*>(message) + 1;
+			const EColorRange range = V_ParseFontColor(colorID, CR_UNTRANSLATED, CR_YELLOW);
+
+			if (range != CR_UNDEFINED)
+			{
+				color = V_LogColorFromColorRange(range);
+			}
+
+			message = reinterpret_cast<const char*>(colorID);
+		}
+		else
+		{
+			buffer[pos++] = *message++;
+		}
+	}
+
+	if (0 != pos)
+	{
+		buffer[pos] = '\0';
+
+		AppendString(color, buffer);
+	}
+
 	//[m_textView scrollRangeToVisible:NSMakeRange([[m_textView string] length], 0)];
 	[m_textView scrollRangeToVisible:NSMakeRange(INT_MAX, 0)];
 
-	//[m_textView setNeedsDisplay:YES];
-
 	[[NSRunLoop currentRunLoop] limitDateForMode:NSDefaultRunLoopMode];
 }
+
+void FBasicStartupScreen::AppendString(PalEntry color, const char* message)
+{
+	NSString* const text = [NSString stringWithUTF8String:message];
+
+	NSDictionary* const attributes = [NSDictionary dictionaryWithObjectsAndKeys:
+		[NSFont systemFontOfSize:14.0f], NSFontAttributeName,
+		RGB(color), NSForegroundColorAttributeName,
+		nil];
+
+	NSAttributedString* const formattedText =
+		[[NSAttributedString alloc] initWithString:text
+										attributes:attributes];
+	[[m_textView textStorage] appendAttributedString:formattedText];
+}
+
 
 void FBasicStartupScreen::PrintCallback(const char* const message)
 {
@@ -317,38 +373,3 @@ FStartupScreen *FStartupScreen::CreateInstance(const int maxProgress)
 	atterm(DeleteStartupScreen);
 	return new FBasicStartupScreen(maxProgress, true);
 }
-
-
-// ---------------------------------------------------------------------------
-
-
-//void I_PrintStr (const char *cp)
-//{
-//	// Strip out any color escape sequences before writing to the log file
-//	char * copy = new char[strlen(cp)+1];
-//	const char * srcp = cp;
-//	char * dstp = copy;
-//
-//	while (*srcp != 0)
-//	{
-//		if (*srcp!=0x1c && *srcp!=0x1d && *srcp!=0x1e && *srcp!=0x1f)
-//		{
-//			*dstp++=*srcp++;
-//		}
-//		else
-//		{
-//			if (srcp[1]!=0) srcp+=2;
-//			else break;
-//		}
-//	}
-//	*dstp=0;
-//
-//	fputs (copy, stdout);
-//	delete [] copy;
-//	fflush (stdout);
-//
-//	if (StartScreen)
-//	{
-//		static_cast<FBasicStartupScreen*>(StartScreen)->AppendString(cp);
-//	}
-//}
