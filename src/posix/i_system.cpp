@@ -231,6 +231,8 @@ void I_SetIWADInfo ()
 {
 }
 
+void (*I_PrintToConsoleWindow)(const char *str);
+
 void I_PrintStr (const char *cp)
 {
 	// Strip out any color escape sequences before writing to the log file
@@ -255,6 +257,11 @@ void I_PrintStr (const char *cp)
 	fputs (copy, stdout);
 	delete [] copy;
 	fflush (stdout);
+
+	if (I_PrintToConsoleWindow)
+	{
+		I_PrintToConsoleWindow(cp);
+	}
 }
 
 #ifndef NO_GTK

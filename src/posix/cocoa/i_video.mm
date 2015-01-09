@@ -690,7 +690,7 @@ void CocoaVideo::SetMode(const int width, const int height, const bool fullscree
 	[[NSOpenGLContext currentContext] flushBuffer];
 
 	static NSString* const TITLE_STRING =
-	[NSString stringWithFormat:@"%s %s", GAMESIG, GetVersionString()];
+		[NSString stringWithFormat:@"%s %s", GAMESIG, GetVersionString()];
 	[m_window setTitle:TITLE_STRING];
 
 	if (![m_window isKeyWindow])

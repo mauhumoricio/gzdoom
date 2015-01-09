@@ -113,6 +113,7 @@ void popterm ();
 
 // Print a console string
 void I_PrintStr (const char *str);
+extern void (*I_PrintToConsoleWindow) (const char *str);
 
 // Set the title string of the startup window
 void I_SetIWADInfo ();

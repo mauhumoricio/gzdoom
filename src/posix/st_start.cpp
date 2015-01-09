@@ -89,6 +89,8 @@ CUSTOM_CVAR(Int, showendoom, 0, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 	else if (self > 2) self=2;
 }
 
+#ifndef __APPLE__
+
 // PRIVATE DATA DEFINITIONS ------------------------------------------------
 
 static const char SpinnyProgressChars[4] = { '|', '/', '-', '\\' };
@@ -346,6 +348,8 @@ bool FTTYStartupScreen::NetLoop(bool (*timer_callback)(void *), void *userdata)
 		}
 	}
 }
+
+#endif // !__APPLE__
 
 void ST_Endoom()
 {

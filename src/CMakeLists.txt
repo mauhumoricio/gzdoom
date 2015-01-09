@@ -564,6 +564,7 @@ set( PLAT_SDL_SOURCES
 	posix/sdl/sdlvideo.cpp )
 set( PLAT_OSX_SOURCES
 	posix/osx/iwadpicker_cocoa.mm
+	posix/osx/st_start.mm
 	posix/osx/zdoom.icns )
 set( PLAT_COCOA_SOURCES
 	posix/cocoa/critsec.cpp
