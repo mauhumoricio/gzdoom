@@ -148,12 +148,12 @@ FBasicStartupScreen::FBasicStartupScreen(int maxProgress, bool showBar)
 {
 	if (showBar)
 	{
-		m_progressBar = [[NSProgressIndicator alloc] initWithFrame:NSMakeRect(4, 0, 504, 16)];
+		m_progressBar = [[NSProgressIndicator alloc] initWithFrame:NSMakeRect(2, 0, 508, 16)];
 		[m_progressBar setIndeterminate:NO];
 		[m_progressBar setMaxValue:maxProgress];
 	}
 
-	NSScrollView* scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 16, 512, 336)];
+	NSScrollView* scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 18, 512, 334)];
 	[scrollView setBorderType:NSNoBorder];
 	[scrollView setHasVerticalScroller:YES];
 	[scrollView setHasHorizontalScroller:NO];
