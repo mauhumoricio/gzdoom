@@ -128,7 +128,12 @@ public:
 private:
 	NSWindow*            m_window;
 	NSTextView*          m_textView;
+	NSScrollView*        m_scrollView;
 	NSProgressIndicator* m_progressBar;
+
+	NSUInteger           m_characterCount;
+
+	void ExpandTextView(double height);
 
 	void AppendString(const char* message);
 	void AppendString(PalEntry color, const char* message);
@@ -140,42 +145,40 @@ private:
 // ---------------------------------------------------------------------------
 
 
+static const CGFloat PROGRESS_BAR_HEIGHT = 18.0f;
+
+
 FBasicStartupScreen::FBasicStartupScreen(int maxProgress, bool showBar)
 : FStartupScreen(maxProgress)
 , m_window([NSWindow alloc])
 , m_textView([NSTextView alloc])
+, m_scrollView([NSScrollView alloc])
 , m_progressBar(nil)
+, m_characterCount(0)
 {
-	if (showBar)
-	{
-		m_progressBar = [[NSProgressIndicator alloc] initWithFrame:NSMakeRect(2, 0, 508, 16)];
-		[m_progressBar setIndeterminate:NO];
-		[m_progressBar setMaxValue:maxProgress];
-	}
+	const NSSize textViewSize = NSMakeSize(512.0f, 352.0f);
 
-	NSScrollView* scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 18, 512, 334)];
-	[scrollView setBorderType:NSNoBorder];
-	[scrollView setHasVerticalScroller:YES];
-	[scrollView setHasHorizontalScroller:NO];
-	[scrollView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-
-	NSSize contentSize = [scrollView contentSize];
-
-	[m_textView initWithFrame:NSMakeRect(0, 0, contentSize.width, contentSize.height)];
+	[m_textView initWithFrame:NSMakeRect(0.0f, 0.0f, textViewSize.width, textViewSize.height)];
 	[m_textView setEditable:NO];
 	[m_textView setBackgroundColor:RGB(70, 70, 70)];
-	[m_textView setMinSize:NSMakeSize(0.0, contentSize.height)];
+	[m_textView setMinSize:NSMakeSize(0.0f, textViewSize.height)];
 	[m_textView setMaxSize:NSMakeSize(FLT_MAX, FLT_MAX)];
 	[m_textView setVerticallyResizable:YES];
 	[m_textView setHorizontallyResizable:NO];
 	[m_textView setAutoresizingMask:NSViewWidthSizable];
-	[scrollView setDocumentView:m_textView];
 
-	NSTextContainer* textContainer = [m_textView textContainer];
-	[textContainer setContainerSize:NSMakeSize(contentSize.width, FLT_MAX)];
+	NSTextContainer* const textContainer = [m_textView textContainer];
+	[textContainer setContainerSize:NSMakeSize(textViewSize.width, FLT_MAX)];
 	[textContainer setWidthTracksTextView:YES];
 
-	NSTextField* titleText = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 352, 512, 32)];
+	[m_scrollView initWithFrame:NSMakeRect(0.0f, 0.0f, textViewSize.width, textViewSize.height)];
+	[m_scrollView setBorderType:NSNoBorder];
+	[m_scrollView setHasVerticalScroller:YES];
+	[m_scrollView setHasHorizontalScroller:NO];
+	[m_scrollView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+	[m_scrollView setDocumentView:m_textView];
+
+	NSTextField* titleText = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0f, 352.0f, 512.0f, 32.0f)];
 	//VerticallyAlignedTextField* titleText = [[VerticallyAlignedTextField alloc] initWithFrame:NSMakeRect(0, 352, 512, 32)];
 	[titleText setStringValue:[NSString stringWithUTF8String:DoomStartupInfo.Name]];
 	[titleText setAlignment:NSCenterTextAlignment];
@@ -187,7 +190,7 @@ FBasicStartupScreen::FBasicStartupScreen(int maxProgress, bool showBar)
 
 	//NSString* const title = [NSString stringWithFormat:@"%s %s - Console", GAMESIG, GetVersionString()];
 
-	[m_window initWithContentRect:NSMakeRect(0, 0, 512, 384)
+	[m_window initWithContentRect:NSMakeRect(0.0f, 0.0f, 512.0f, 384.0f)
 						styleMask:NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask
 						  backing:NSBackingStoreBuffered
 							defer:NO];
@@ -195,9 +198,19 @@ FBasicStartupScreen::FBasicStartupScreen(int maxProgress, bool showBar)
 	[m_window center];
 
 	NSView* contentView = [m_window contentView];
-	[contentView addSubview:m_progressBar];
-	[contentView addSubview:scrollView];
+	[contentView addSubview:m_scrollView];
 	[contentView addSubview:titleText];
+
+	if (showBar)
+	{
+		ExpandTextView(-PROGRESS_BAR_HEIGHT);
+
+		m_progressBar = [[NSProgressIndicator alloc] initWithFrame:NSMakeRect(2.0f, 0.0f, 508.0f, 16.0f)];
+		[m_progressBar setIndeterminate:NO];
+		[m_progressBar setMaxValue:maxProgress];
+
+		[contentView addSubview:m_progressBar];
+	}
 
 	[m_window makeKeyAndOrderFront:nil];
 	//[m_window makeFirstResponder:m_textView];
@@ -230,6 +243,13 @@ FBasicStartupScreen::FBasicStartupScreen(int maxProgress, bool showBar)
 
 FBasicStartupScreen::~FBasicStartupScreen()
 {
+	if (nil != m_progressBar)
+	{
+		ExpandTextView(PROGRESS_BAR_HEIGHT);
+
+		[m_progressBar removeFromSuperview];
+	}
+
 #ifndef _DEBUG
 	[m_window close];
 #endif // !_DEBUG
@@ -243,6 +263,11 @@ void FBasicStartupScreen::Progress()
 	if (CurPos < MaxPos)
 	{
 		++CurPos;
+	}
+
+	if (nil == m_progressBar)
+	{
+		return;
 	}
 
 	static unsigned int previousTime = I_MSTime();
@@ -282,6 +307,15 @@ void FBasicStartupScreen::NetDone()
 bool FBasicStartupScreen::NetLoop(bool (*timerCallback)(void*), void* const userData)
 {
 	return true;
+}
+
+
+void FBasicStartupScreen::ExpandTextView(const double height)
+{
+	NSRect textFrame = [m_scrollView frame];
+	textFrame.origin.y    -= height;
+	textFrame.size.height += height;
+	[m_scrollView setFrame:textFrame];
 }
 
 
@@ -328,8 +362,7 @@ void FBasicStartupScreen::AppendString(const char* message)
 		AppendString(color, buffer);
 	}
 
-	//[m_textView scrollRangeToVisible:NSMakeRange([[m_textView string] length], 0)];
-	[m_textView scrollRangeToVisible:NSMakeRange(INT_MAX, 0)];
+	[m_textView scrollRangeToVisible:NSMakeRange(m_characterCount, 0)];
 
 	[[NSRunLoop currentRunLoop] limitDateForMode:NSDefaultRunLoopMode];
 }
@@ -347,6 +380,8 @@ void FBasicStartupScreen::AppendString(PalEntry color, const char* message)
 		[[NSAttributedString alloc] initWithString:text
 										attributes:attributes];
 	[[m_textView textStorage] appendAttributedString:formattedText];
+
+	m_characterCount += [text length];
 }
 
 
