@@ -329,22 +329,29 @@ int I_FindAttr (findstate_t *fileinfo)
 }
 
 
+static NSString* GetPasteboardStringType()
+{
+#if MAC_OS_X_VERSION_MAX_ALLOWED < 1060
+	return NSStringPboardType;
+#else // 10.6 or higher
+	return NSAppKitVersionNumber < AppKit10_6
+		? NSStringPboardType
+		: NSPasteboardTypeString;
+#endif // before 10.6
+}
+
 void I_PutInClipboard(const char* const string)
 {
-	// TODO: add support for OS X before 10.6
-
 	NSPasteboard* const pasteBoard = [NSPasteboard generalPasteboard];
 	[pasteBoard clearContents];
 	[pasteBoard setString:[NSString stringWithUTF8String:string]
-				  forType:NSPasteboardTypeString];
+				  forType:GetPasteboardStringType()];
 }
 
 FString I_GetFromClipboard(bool)
 {
-	// TODO: add support for OS X before 10.6
-
 	NSPasteboard* const pasteBoard = [NSPasteboard generalPasteboard];
-	NSString* const value = [pasteBoard stringForType:NSPasteboardTypeString];
+	NSString* const value = [pasteBoard stringForType:GetPasteboardStringType()];
 
 	return FString([value UTF8String]);
 }
