@@ -32,6 +32,7 @@
  */
 
 #include <assert.h>
+#include <sys/sysctl.h>
 #include <sys/time.h>
 #include <pthread.h>
 #include <libkern/OSAtomic.h>
@@ -43,36 +44,25 @@
 #include "templates.h"
 
 
-static timeval s_startTicks;
-
-
-unsigned int I_MSTime()
-{
-	timeval now;
-	gettimeofday(&now, NULL);
-
-	const uint32_t ticks =
-		  (now.tv_sec  - s_startTicks.tv_sec ) * 1000
-		+ (now.tv_usec - s_startTicks.tv_usec) / 1000;
-
-	return ticks;
-}
-
-unsigned int I_FPSTime()
-{
-	timeval now;
-	gettimeofday(&now, NULL);
-
-	return static_cast<unsigned int>(
-		(now.tv_sec) * 1000 + (now.tv_usec) / 1000);
-}
-
-
 bool g_isTicFrozen;
 
 
 namespace
 {
+
+timeval s_gameStartTicks;
+timeval s_systemBootTicks;
+
+unsigned int GetMillisecondsSince(const timeval& time)
+{
+	timeval now;
+	gettimeofday(&now, NULL);
+
+	return static_cast<unsigned int>(
+		  (now.tv_sec  - time.tv_sec ) * 1000
+		+ (now.tv_usec - time.tv_usec) / 1000);
+}
+
 
 timespec GetNextTickTime()
 {
@@ -186,6 +176,17 @@ void FreezeTimeThreaded(bool frozen)
 } // unnamed namespace
 
 
+unsigned int I_MSTime()
+{
+	return GetMillisecondsSince(s_gameStartTicks);
+}
+
+unsigned int I_FPSTime()
+{
+	return GetMillisecondsSince(s_systemBootTicks);
+}
+
+
 fixed_t I_GetTimeFrac(uint32* ms)
 {
 	const uint32_t now = I_MSTime();
@@ -206,7 +207,12 @@ void I_InitTimer()
 	assert(!s_timerInitialized);
 	s_timerInitialized = true;
 
-	gettimeofday(&s_startTicks, NULL);
+	gettimeofday(&s_gameStartTicks, NULL);
+
+	int mib[2] = { CTL_KERN, KERN_BOOTTIME };
+	size_t len = sizeof s_systemBootTicks;
+
+	sysctl(mib, 2, &s_systemBootTicks, &len, NULL, 0);
 
 	pthread_cond_init (&s_timerEvent,  NULL);
 	pthread_mutex_init(&s_timerMutex,  NULL);
