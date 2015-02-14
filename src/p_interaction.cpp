@@ -366,7 +366,7 @@ void AActor::Die (AActor *source, AActor *inflictor, int dmgflags)
 
 	if (debugfile && this->player)
 	{
-		static int dieticks[MAXPLAYERS];
+		static int dieticks[MAXPLAYERS]; // [ZzZombo] not used? Except if for peeking in debugger...
 		int pnum = int(this->player-players);
 		dieticks[pnum] = gametic;
 		fprintf (debugfile, "died (%d) on tic %d (%s)\n", pnum, gametic,
@@ -1278,7 +1278,10 @@ int P_DamageMobj (AActor *target, AActor *inflictor, AActor *source, int damage,
 			if (!(flags & DMG_NO_ARMOR) && player->mo->Inventory != NULL)
 			{
 				int newdam = damage;
-				player->mo->Inventory->AbsorbDamage(damage, mod, newdam);
+				if (damage > 0)
+				{
+					player->mo->Inventory->AbsorbDamage(damage, mod, newdam);
+				}
 				if (damage < TELEFRAG_DAMAGE)
 				{
 					// if we are telefragging don't let the damage value go below that magic value. Some further checks would fail otherwise.
@@ -1713,14 +1716,12 @@ void P_PoisonDamage (player_t *player, AActor *source, int damage,
 	bool playPainSound)
 {
 	AActor *target;
-	AActor *inflictor;
 
 	if (player == NULL)
 	{
 		return;
 	}
 	target = player->mo;
-	inflictor = source;
 	if (target->health <= 0)
 	{
 		return;

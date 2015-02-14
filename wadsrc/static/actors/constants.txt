@@ -72,6 +72,7 @@ const int SXF_SETTARGET =				1 << 20;
 const int SXF_SETTRACER =				1 << 21;
 const int SXF_NOPOINTERS =				1 << 22;
 const int SXF_ORIGINATOR =				1 << 23;
+const int SXF_TRANSFERSPRITEFRAME	=	1 << 24;
 
 // Flags for A_Chase
 const int CHF_FASTCHASE = 1;
@@ -445,6 +446,15 @@ enum
 {
 	FTF_REMOVE =	1 << 0,
 	FTF_CLAMP =		1 << 1,
+};
+
+// Flags for A_Face*
+enum
+{
+	FAF_BOTTOM = 1,
+	FAF_MIDDLE = 2,
+	FAF_TOP = 4,
+	FAF_NODISTFACTOR = 8,
 };
 
 

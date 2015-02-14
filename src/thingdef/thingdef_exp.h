@@ -153,6 +153,7 @@ class FxExpression
 {
 protected:
 	FxExpression(const FScriptPosition &pos)
+	: ScriptPosition(pos)
 	{
 		isresolved = false;
 		ScriptPosition = pos;
