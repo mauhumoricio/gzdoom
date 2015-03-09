@@ -170,6 +170,7 @@ DCE862393CAAA6FF1294FB7056B53057 // UAC Ultra map07: Contains a scroller dependi
 040F83028FFA74456E335ED300BE2C33 // MAP17 (TownInfection.wad)
 156FA31F5FF72A87BF345B68029D3051 // MAP02 (nprject5.wad)
 AF40D0E49BD1B76D4B1AADD8212ADC46 // MAP01 (the wad that shall not be named =P)
+91341EF9250760C9B550752E1D91CC24 // rock and roll rebel radio against satan city (rnrrrasc.wad) map01
 {
 	ignoreteleporttags
 }
@@ -386,7 +387,6 @@ A53AE580A4AF2B5D0B0893F86914781E // TNT: Evilution map31
 {
 	setthingflags 470 2016
 }
-
 712BB4CFBD0753178CA0C6814BE4C288 // map12 BTSX_E1 - patch some rendering glitches that are problematic to detect
 {
 	setsectortag 545 32000
