@@ -4815,15 +4815,11 @@ static int SwapActorTeleFog(AActor *activator, int tid)
 	int count = 0;
 	if (tid == 0)
 	{
-		if ((activator == NULL) || (activator->TeleFogSourceType = activator->TeleFogDestType)) 
+		if ((activator == NULL) || (activator->TeleFogSourceType == activator->TeleFogDestType)) 
 			return 0; //Does nothing if they're the same.
-		else 
-		{
-			const PClass *temp = activator->TeleFogSourceType;
-			activator->TeleFogSourceType = activator->TeleFogDestType;
-			activator->TeleFogDestType = temp;
-			return 1;
-		}
+
+		swapvalues (activator->TeleFogSourceType, activator->TeleFogDestType);
+		return 1;
 	}
 	else
 	{
@@ -4834,9 +4830,8 @@ static int SwapActorTeleFog(AActor *activator, int tid)
 		{
 			if (actor->TeleFogSourceType == actor->TeleFogDestType) 
 				continue; //They're the same. Save the effort.
-			const PClass *temp = actor->TeleFogSourceType;
-			actor->TeleFogSourceType = actor->TeleFogDestType;
-			actor->TeleFogDestType = temp;
+
+			swapvalues (actor->TeleFogSourceType, actor->TeleFogDestType);
 			count++;
 		}
 	}
@@ -8795,7 +8790,7 @@ scriptwait:
 			break;
 
 		case PCD_PLAYERINGAME:
-			if (STACK(1) < 0 || STACK(1) > MAXPLAYERS)
+			if (STACK(1) < 0 || STACK(1) >= MAXPLAYERS)
 			{
 				STACK(1) = false;
 			}
@@ -8806,7 +8801,7 @@ scriptwait:
 			break;
 
 		case PCD_PLAYERISBOT:
-			if (STACK(1) < 0 || STACK(1) > MAXPLAYERS || !playeringame[STACK(1)])
+			if (STACK(1) < 0 || STACK(1) >= MAXPLAYERS || !playeringame[STACK(1)])
 			{
 				STACK(1) = false;
 			}
