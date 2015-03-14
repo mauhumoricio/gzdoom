@@ -667,7 +667,6 @@
 		8AF27BBB1390F5EE0095D9A0 /* sampbuf.c in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27B5C1390F5EE0095D9A0 /* sampbuf.c */; };
 		8AF27BBC1390F5EE0095D9A0 /* silence.c in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27B5D1390F5EE0095D9A0 /* silence.c */; };
 		8AF27BBD1390F5EE0095D9A0 /* stdfile.c in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27B5E1390F5EE0095D9A0 /* stdfile.c */; };
-		8AF27BBE1390F5EE0095D9A0 /* filter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27B601390F5EE0095D9A0 /* filter.cpp */; };
 		8AF27BBF1390F5EE0095D9A0 /* itload.c in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27B611390F5EE0095D9A0 /* itload.c */; };
 		8AF27BC01390F5EE0095D9A0 /* itload2.c in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27B621390F5EE0095D9A0 /* itload2.c */; };
 		8AF27BC11390F5EE0095D9A0 /* itmisc.c in Sources */ = {isa = PBXBuildFile; fileRef = 8AF27B631390F5EE0095D9A0 /* itmisc.c */; };
@@ -2441,6 +2440,7 @@
 		8A80E04E17ABB57200917483 /* hexndefs.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = hexndefs.txt; sourceTree = "<group>"; };
 		8A80E04F17ABB57200917483 /* hticdefs.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = hticdefs.txt; sourceTree = "<group>"; };
 		8A80E05017ABB57200917483 /* strfdefs.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = strfdefs.txt; sourceTree = "<group>"; };
+		8A8D51491AB432AA008FD481 /* mulsc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mulsc.h; sourceTree = "<group>"; };
 		8A8D68B213C84344001D368F /* r_renderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = r_renderer.h; sourceTree = "<group>"; };
 		8A8D68B313C84344001D368F /* r_swrenderer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = r_swrenderer.cpp; sourceTree = "<group>"; };
 		8A8D68B413C84344001D368F /* r_swrenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = r_swrenderer.h; sourceTree = "<group>"; };
@@ -2716,7 +2716,6 @@
 		8AF27B5C1390F5EE0095D9A0 /* sampbuf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sampbuf.c; sourceTree = "<group>"; };
 		8AF27B5D1390F5EE0095D9A0 /* silence.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = silence.c; sourceTree = "<group>"; };
 		8AF27B5E1390F5EE0095D9A0 /* stdfile.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stdfile.c; sourceTree = "<group>"; };
-		8AF27B601390F5EE0095D9A0 /* filter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = filter.cpp; sourceTree = "<group>"; };
 		8AF27B611390F5EE0095D9A0 /* itload.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = itload.c; sourceTree = "<group>"; };
 		8AF27B621390F5EE0095D9A0 /* itload2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = itload2.c; sourceTree = "<group>"; };
 		8AF27B631390F5EE0095D9A0 /* itmisc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = itmisc.c; sourceTree = "<group>"; };
@@ -5437,6 +5436,7 @@
 				8A07F0D11AAC466B005E4236 /* dumbfile.h */,
 				8AF27B401390F5EE0095D9A0 /* it.h */,
 				8A07F0D21AAC466B005E4236 /* lpc.h */,
+				8A8D51491AB432AA008FD481 /* mulsc.h */,
 				8A07F0D31AAC466B005E4236 /* resampler.h */,
 				8AF27B411390F5EE0095D9A0 /* riff.h */,
 				8A07F0D41AAC466B005E4236 /* stack_alloc.h */,
@@ -5498,7 +5498,6 @@
 		8AF27B5F1390F5EE0095D9A0 /* it */ = {
 			isa = PBXGroup;
 			children = (
-				8AF27B601390F5EE0095D9A0 /* filter.cpp */,
 				8AF27B611390F5EE0095D9A0 /* itload.c */,
 				8AF27B621390F5EE0095D9A0 /* itload2.c */,
 				8AF27B631390F5EE0095D9A0 /* itmisc.c */,
@@ -7604,7 +7603,6 @@
 				8AF27BBC1390F5EE0095D9A0 /* silence.c in Sources */,
 				8AF27BBD1390F5EE0095D9A0 /* stdfile.c in Sources */,
 				8A07F0DF1AAC477E005E4236 /* tarray.c in Sources */,
-				8AF27BBE1390F5EE0095D9A0 /* filter.cpp in Sources */,
 				8AF27BBF1390F5EE0095D9A0 /* itload.c in Sources */,
 				8AF27BC01390F5EE0095D9A0 /* itload2.c in Sources */,
 				8AF27BC11390F5EE0095D9A0 /* itmisc.c in Sources */,
