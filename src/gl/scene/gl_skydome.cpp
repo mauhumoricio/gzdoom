@@ -264,7 +264,13 @@ static void RenderDome(FTextureID texno, FMaterial * tex, float x_offset, float 
 		glRotatef(-180.0f+x_offset, 0.f, 1.f, 0.f);
 		yAdd = y_offset/texh;
 
-		if (texh < 200)
+		if (texh < 128)
+		{
+			// smaller sky textures must be tiled. We restrict it to 128 sky pixels, though
+			glTranslatef(0.f, -1250.f, 0.f);
+			glScalef(1.f, 128/230.f, 1.f);
+		}
+		else if (texh < 200)
 		{
 			glTranslatef(0.f, -1250.f, 0.f);
 			glScalef(1.f, texh/230.f, 1.f);
