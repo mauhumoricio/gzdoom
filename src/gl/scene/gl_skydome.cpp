@@ -272,7 +272,7 @@ static void RenderDome(FTextureID texno, FMaterial * tex, float x_offset, float 
 			glMatrixMode(GL_TEXTURE);
 			glPushMatrix();
 			glLoadIdentity();
-			glScalef(1.f, 128.f / texh, 1.f);
+			glScalef(1.f, 128 / texh, 1.f); // intentionally left as integer.
 			glMatrixMode(GL_MODELVIEW);
 			texscale = true;
 		}
