@@ -269,6 +269,12 @@ static void RenderDome(FTextureID texno, FMaterial * tex, float x_offset, float 
 			// smaller sky textures must be tiled. We restrict it to 128 sky pixels, though
 			glTranslatef(0.f, -1250.f, 0.f);
 			glScalef(1.f, 128/230.f, 1.f);
+			glMatrixMode(GL_TEXTURE);
+			glPushMatrix();
+			glLoadIdentity();
+			glScalef(1.f, 128.f / texh, 1.f);
+			glMatrixMode(GL_MODELVIEW);
+			texscale = true;
 		}
 		else if (texh < 200)
 		{
